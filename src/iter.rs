@@ -8,15 +8,15 @@ pub struct ActiveSample {
 }
 
 pub struct PoissonIterInner<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> {
-    poisson: Poisson<N, S, R>,
+    pub(crate) poisson: Poisson<N, S, R>,
 
-    r2: Float,
-    inv_cell_len: Float,
-    grid_dims: [usize; N],
+    pub(crate) r2: Float,
+    pub(crate) inv_cell_len: Float,
+    pub(crate) grid_dims: [usize; N],
 
-    samples: Vec<Point<N>>,
-    grid: Vec<Option<usize>>,
-    active: Vec<ActiveSample>,
+    pub(crate) samples: Vec<Point<N>>,
+    pub(crate) grid: Vec<Option<usize>>,
+    pub(crate) active: Vec<ActiveSample>,
 }
 
 impl<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> PoissonIterInner<N, S, R>
@@ -191,13 +191,8 @@ where
             {
                 let sample = &self.inner.active[active_idx];
                 sample_idx = sample.idx;
-                it = S::sample_nbhd(
-                    sample,
-                    &self.inner.samples,
-                    &self.inner.poisson,
-                    &mut self.rng,
-                )
-                .take(self.inner.poisson.attempts);
+                it = S::sample_nbhd(sample, &self.inner, &mut self.rng)
+                    .take(self.inner.poisson.attempts);
             }
             p_opt = loop {
                 let next = it.next();
