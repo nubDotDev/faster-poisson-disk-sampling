@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 mod iter;
 pub use iter::PoissonIter;
-use iter::PoissonIterImpl;
+use iter::{PoissonIterImpl, PoissonIterInner};
 
 mod nbhd;
 pub use nbhd::{NbhdSampler, ParentalNbhdSampler, StandardNbhdSampler};
@@ -18,14 +18,15 @@ pub struct Poisson<
     S: NbhdSampler<N> = StandardNbhdSampler<N>,
     R: Rng + SeedableRng = Xoshiro256StarStar,
 > {
-    pub dims: Point<N>,
-    pub radius: Float,
-    pub attempts: u32,
-    pub cdf_exp: Float,
+    dims: Point<N>,
+    radius: Float,
+    attempts: usize,
+    cdf_exp: Float,
+    initial_sample: Option<Point<N>>,
 
     _nbhd_sampler: PhantomData<S>,
 
-    pub seed: Option<u64>,
+    seed: Option<u64>,
     _rng: PhantomData<R>,
 }
 
@@ -34,7 +35,7 @@ pub type Poisson3D = Poisson<3>;
 
 impl<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> Poisson<N, S, R>
 where
-    PoissonIter<N, S, R>: PoissonIterImpl<N>,
+    PoissonIterInner<N, S, R>: PoissonIterImpl<N>,
 {
     pub fn new() -> Self {
         Self::default()
@@ -58,13 +59,18 @@ where
         self
     }
 
-    pub fn set_attempts(mut self, attempts: u32) -> Self {
+    pub fn set_attempts(mut self, attempts: usize) -> Self {
         self.attempts = attempts;
         self
     }
 
     pub fn set_cdf_exp(mut self, cdf_exp: Float) -> Self {
         self.cdf_exp = cdf_exp;
+        self
+    }
+
+    pub fn set_initial_sample(mut self, initial_sample: Option<Point<N>>) -> Self {
+        self.initial_sample = initial_sample;
         self
     }
 
@@ -87,6 +93,7 @@ impl<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> Default for Poisso
             radius: 0.1,
             attempts: 30,
             cdf_exp: 2.0,
+            initial_sample: None,
 
             _nbhd_sampler: Default::default(),
 
@@ -99,6 +106,12 @@ impl<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> Default for Poisso
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn nonempty() {
+        assert!(Poisson2D::new().set_seed(Some(0xDEADBEEF)).run().len() > 0);
+        assert!(Poisson3D::new().set_seed(Some(0xDEADBEEF)).run().len() > 0);
+    }
 
     fn dist<const N: usize>(v1: &[Float; N], v2: &[Float; N]) -> Float {
         std::array::from_fn::<Float, N, _>(|i| (v1[i] - v2[i]).powi(2))
@@ -133,5 +146,15 @@ mod tests {
                 assert!(dist(s1, s2) >= poisson3d.radius, "{:?} {:?}", s1, s2);
             }
         }
+    }
+
+    #[test]
+    fn parental() {
+        let poisson =
+            Poisson::<2, ParentalNbhdSampler<2>>::new().set_initial_sample(Some([0.5, 0.5]));
+        let mut iter = poisson.iter();
+        iter.next();
+        iter.next();
+        // TODO: finish
     }
 }
