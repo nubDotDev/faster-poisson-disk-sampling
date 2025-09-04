@@ -10,7 +10,6 @@ pub struct ActiveSample {
 pub struct PoissonIterInner<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> {
     pub(crate) poisson: Poisson<N, S, R>,
 
-    pub(crate) r2: Float,
     pub(crate) inv_cell_len: Float,
     pub(crate) grid_dims: [usize; N],
 
@@ -61,22 +60,19 @@ impl<S: NbhdSampler<2>, R: Rng + SeedableRng> PoissonIterImpl<2> for PoissonIter
         }
 
         let ndidx = self.point_to_ndidx(p);
-        let mut buff = [0; 2];
         let off = p.map(|x| ((x * self.inv_cell_len) % 1.0).round() as usize);
         for i in
             ndidx[0].saturating_sub(2 - off[0])..=(ndidx[0] + 1 + off[0]).min(self.grid_dims[0] - 1)
         {
-            buff[0] = i;
             for j in ndidx[1].saturating_sub(2 - off[1])
                 ..=(ndidx[1] + 1 + off[1]).min(self.grid_dims[1] - 1)
             {
-                buff[1] = j;
-                match self.grid[self.ndidx_to_idx(&buff)] {
+                match self.grid[self.ndidx_to_idx(&[i, j])] {
                     None => continue,
                     Some(neighbor_sample_idx) => {
                         let ns = self.samples[neighbor_sample_idx];
                         let d = [p[0] - ns[0], p[1] - ns[1]];
-                        if d[0] * d[0] + d[1] * d[1] < self.r2 {
+                        if d[0] * d[0] + d[1] * d[1] < self.poisson.radius * self.poisson.radius {
                             return false;
                         }
                         continue;
@@ -85,7 +81,7 @@ impl<S: NbhdSampler<2>, R: Rng + SeedableRng> PoissonIterImpl<2> for PoissonIter
             }
         }
 
-        return true;
+        true
     }
 }
 
@@ -103,19 +99,17 @@ impl<S: NbhdSampler<3>, R: Rng + SeedableRng> PoissonIterImpl<3> for PoissonIter
         }
 
         let ndidx = self.point_to_ndidx(p);
-        let mut buff = [0; 3];
         for i in ndidx[0].saturating_sub(2)..=(ndidx[0] + 2).min(self.grid_dims[0] - 1) {
-            buff[0] = i;
             for j in ndidx[1].saturating_sub(2)..=(ndidx[1] + 2).min(self.grid_dims[1] - 1) {
-                buff[1] = j;
                 for k in ndidx[2].saturating_sub(2)..=(ndidx[2] + 2).min(self.grid_dims[2] - 1) {
-                    buff[2] = k;
-                    match self.grid[self.ndidx_to_idx(&buff)] {
+                    match self.grid[self.ndidx_to_idx(&[i, j, k])] {
                         None => continue,
                         Some(neighbor_sample_idx) => {
                             let ns = self.samples[neighbor_sample_idx];
                             let d = [p[0] - ns[0], p[1] - ns[1], p[2] - ns[2]];
-                            if d[0] * d[0] + d[1] * d[1] + d[2] * d[2] < self.r2 {
+                            if d[0] * d[0] + d[1] * d[1] + d[2] * d[2]
+                                < self.poisson.radius * self.poisson.radius
+                            {
                                 return false;
                             }
                             continue;
@@ -125,13 +119,13 @@ impl<S: NbhdSampler<3>, R: Rng + SeedableRng> PoissonIterImpl<3> for PoissonIter
             }
         }
 
-        return true;
+        true
     }
 }
 
 pub struct PoissonIter<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> {
-    inner: PoissonIterInner<N, S, R>,
-    rng: R,
+    pub(crate) inner: PoissonIterInner<N, S, R>,
+    pub(crate) rng: R,
 }
 
 impl<const N: usize, S: NbhdSampler<N>, R: Rng + SeedableRng> PoissonIter<N, S, R>
@@ -153,7 +147,6 @@ where
             inner: PoissonIterInner {
                 poisson: poisson.clone(),
 
-                r2: poisson.radius * poisson.radius,
                 inv_cell_len,
                 grid_dims,
 
@@ -184,36 +177,23 @@ where
 
     fn sample(&mut self) -> Option<Point<N>> {
         let active_idx = self.rng.random_range(0..self.inner.active.len());
-        let p_opt;
-        let sample_idx;
-        {
-            let mut it;
-            {
-                let sample = &self.inner.active[active_idx];
-                sample_idx = sample.idx;
-                it = S::sample_nbhd(sample, &self.inner, &mut self.rng)
-                    .take(self.inner.poisson.attempts);
-            }
-            p_opt = loop {
-                let next = it.next();
-                match next {
-                    None => break None,
-                    Some(cand) => {
-                        if self.inner.is_sample_valid(&cand) {
-                            break next;
-                        }
-                    }
-                }
-            };
-        }
+        let (sample_idx, p_opt) = {
+            let sample = &self.inner.active[active_idx];
+            (
+                sample.idx,
+                S::sample_nbhd(sample, &self.inner, &mut self.rng)
+                    .take(self.inner.poisson.attempts)
+                    .find(|cand| self.inner.is_sample_valid(&cand)),
+            )
+        };
         match p_opt {
             None => {
                 self.inner.active.swap_remove(active_idx);
-                return None;
+                p_opt
             }
             Some(p) => {
                 self.inner.add_point(&p, Some(sample_idx));
-                return Some(p);
+                p_opt
             }
         }
     }
@@ -236,6 +216,6 @@ where
                 Some(_) => return p,
             }
         }
-        return None;
+        None
     }
 }

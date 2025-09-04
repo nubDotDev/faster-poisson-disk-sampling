@@ -8,24 +8,40 @@ fn poisson2d_benchmark(c: &mut Criterion) {
     c.bench_function("2D Standard", |b| {
         b.iter(|| {
             Poisson::<2, StandardNbhdSampler<2>>::new()
-                .set_dims([5.0; 2])
-                .set_seed(Some(rng.next_u64()))
+                .use_dims([5.0; 2])
+                .use_attempts(30)
+                .use_cdf_exp(2.0)
+                .use_seed(Some(rng.next_u64()))
                 .run()
         })
     });
     c.bench_function("3D Standard", |b| {
         b.iter(|| {
             Poisson::<3, StandardNbhdSampler<3>>::new()
-                .set_dims([5.0; 3])
-                .set_seed(Some(rng.next_u64()))
+                .use_dims([5.0; 3])
+                .use_attempts(30)
+                .use_cdf_exp(2.0)
+                .use_seed(Some(rng.next_u64()))
                 .run()
         })
     });
     c.bench_function("2D Parental", |b| {
         b.iter(|| {
             Poisson::<2, ParentalNbhdSampler<2>>::new()
-                .set_dims([5.0; 2])
-                .set_seed(Some(rng.next_u64()))
+                .use_dims([5.0; 2])
+                .use_attempts(30)
+                .use_cdf_exp(2.0)
+                .use_seed(Some(rng.next_u64()))
+                .run()
+        })
+    });
+    c.bench_function("2D Parental (cdf_exp=1.0)", |b| {
+        b.iter(|| {
+            Poisson::<2, ParentalNbhdSampler<2>>::new()
+                .use_dims([5.0; 2])
+                .use_attempts(18)
+                .use_cdf_exp(1.0)
+                .use_seed(Some(rng.next_u64()))
                 .run()
         })
     });

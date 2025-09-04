@@ -22,7 +22,7 @@ impl NbhdSampler<2> for StandardNbhdSampler<2> {
     ) -> impl Iterator<Item = Point<2>> {
         let p = &inner.samples[sample.idx];
 
-        return from_fn(move || {
+        from_fn(move || {
             let s = 2.0
                 * inner.poisson.radius
                 * rng
@@ -30,7 +30,7 @@ impl NbhdSampler<2> for StandardNbhdSampler<2> {
                     .powf(1.0 / inner.poisson.cdf_exp);
             let theta = rng.random_range(0.0..std::f64::consts::TAU);
             Some([p[0] + s * theta.cos(), p[1] + s * theta.sin()])
-        });
+        })
     }
 }
 
@@ -42,7 +42,7 @@ impl NbhdSampler<3> for StandardNbhdSampler<3> {
     ) -> impl Iterator<Item = Point<3>> {
         let p = &inner.samples[sample.idx];
 
-        return from_fn(move || {
+        from_fn(move || {
             let s = 2.0
                 * inner.poisson.radius
                 * rng
@@ -59,7 +59,7 @@ impl NbhdSampler<3> for StandardNbhdSampler<3> {
                 p[1] + scale * v[1],
                 p[2] + scale * v[2],
             ])
-        });
+        })
     }
 }
 
@@ -88,7 +88,7 @@ impl NbhdSampler<2> for ParentalNbhdSampler<2> {
             }
         };
 
-        return from_fn(move || {
+        from_fn(move || {
             let s = 2.0
                 * inner.poisson.radius
                 * rng
@@ -96,6 +96,6 @@ impl NbhdSampler<2> for ParentalNbhdSampler<2> {
                     .powf(1.0 / inner.poisson.cdf_exp);
             let theta = rng.random_range(theta_range[0]..theta_range[1]);
             Some([p[0] + s * theta.cos(), p[1] + s * theta.sin()])
-        });
+        })
     }
 }

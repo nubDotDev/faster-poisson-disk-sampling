@@ -26,8 +26,8 @@ pub struct Poisson<
 
     _nbhd_sampler: PhantomData<S>,
 
-    seed: Option<u64>,
     _rng: PhantomData<R>,
+    seed: Option<u64>,
 }
 
 pub type Poisson2D = Poisson<2>;
@@ -49,32 +49,32 @@ where
         self.iter().collect()
     }
 
-    pub fn set_dims(mut self, dims: Point<N>) -> Self {
+    pub fn use_dims(mut self, dims: Point<N>) -> Self {
         self.dims = dims;
         self
     }
 
-    pub fn set_radius(mut self, radius: Float) -> Self {
+    pub fn use_radius(mut self, radius: Float) -> Self {
         self.radius = radius;
         self
     }
 
-    pub fn set_attempts(mut self, attempts: usize) -> Self {
+    pub fn use_attempts(mut self, attempts: usize) -> Self {
         self.attempts = attempts;
         self
     }
 
-    pub fn set_cdf_exp(mut self, cdf_exp: Float) -> Self {
+    pub fn use_cdf_exp(mut self, cdf_exp: Float) -> Self {
         self.cdf_exp = cdf_exp;
         self
     }
 
-    pub fn set_initial_sample(mut self, initial_sample: Option<Point<N>>) -> Self {
+    pub fn use_initial_sample(mut self, initial_sample: Option<Point<N>>) -> Self {
         self.initial_sample = initial_sample;
         self
     }
 
-    pub fn set_seed(mut self, seed: Option<u64>) -> Self {
+    pub fn use_seed(mut self, seed: Option<u64>) -> Self {
         self.seed = seed;
         self
     }
@@ -109,8 +109,8 @@ mod tests {
 
     #[test]
     fn nonempty() {
-        assert!(Poisson2D::new().set_seed(Some(0xDEADBEEF)).run().len() > 0);
-        assert!(Poisson3D::new().set_seed(Some(0xDEADBEEF)).run().len() > 0);
+        assert!(Poisson2D::new().use_seed(Some(0xDEADBEEF)).run().len() > 0);
+        assert!(Poisson3D::new().use_seed(Some(0xDEADBEEF)).run().len() > 0);
     }
 
     fn dist<const N: usize>(v1: &[Float; N], v2: &[Float; N]) -> Float {
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn closeness2d() {
-        let poisson2d = Poisson2D::new().set_seed(Some(0xDEADBEEF));
+        let poisson2d = Poisson2D::new().use_seed(Some(0xDEADBEEF));
         let samples2d = poisson2d.run();
         for (i, s1) in samples2d.iter().enumerate() {
             for s2 in &samples2d[i + 1..] {
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn closeness3d() {
-        let poisson3d = Poisson3D::new().set_seed(Some(0xDEADBEEF));
+        let poisson3d = Poisson3D::new().use_seed(Some(0xDEADBEEF));
         let samples3d = poisson3d.run();
         for (i, s1) in samples3d.iter().enumerate() {
             for s2 in &samples3d[i + 1..] {
@@ -146,15 +146,5 @@ mod tests {
                 assert!(dist(s1, s2) >= poisson3d.radius, "{:?} {:?}", s1, s2);
             }
         }
-    }
-
-    #[test]
-    fn parental() {
-        let poisson =
-            Poisson::<2, ParentalNbhdSampler<2>>::new().set_initial_sample(Some([0.5, 0.5]));
-        let mut iter = poisson.iter();
-        iter.next();
-        iter.next();
-        // TODO: finish
     }
 }

@@ -196,10 +196,10 @@ class PoissonDiskSampler:
         return list(map(self._nearest_neighbor_distance, self.samples))
 
 
-dims = np.array([10, 10])
+dims = np.array([50, 50])
 pds = PoissonDiskSampler(dims, 1, 30, enable_logging=True)
 pds.run()
-pds1 = PoissonDiskSampler(dims, 1, 30, cdf_exp=0.1, enable_logging=True)
+pds1 = PoissonDiskSampler(dims, 1, 30, cdf_exp=1, enable_logging=True)
 pds1.run()
 
 # pds.plot()
@@ -216,8 +216,20 @@ pds1.run()
 
 
 plt.figure()
-plt.hist(pds.nearest_neighbors_distances())
-plt.hist(pds1.nearest_neighbors_distances())
+plt.hist(
+    pds.nearest_neighbors_distances(),
+    bins=[1 + 0.05 * i for i in range(21)],
+    alpha=0.5,
+    color="BLUE",
+    density=True,
+)
+plt.hist(
+    pds1.nearest_neighbors_distances(),
+    bins=[1 + 0.05 * i for i in range(21)],
+    alpha=0.5,
+    color="ORANGE",
+    density=True,
+)
 plt.xlabel("Distance to nearest neighbor")
 plt.show()
 
