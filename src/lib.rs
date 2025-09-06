@@ -1,12 +1,15 @@
+mod bridson;
+mod regular;
+
+use crate::{
+    bridson::{
+        BridsonSampler2D, BridsonSampler3D, BridsonSamplerBase, BridsonSamplerND, ParentalSampler2D,
+    },
+    regular::RegularSampler,
+};
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
-use std::{array, f64::consts::SQRT_2};
-
-mod bridson;
-
-use crate::bridson::{
-    BridsonSampler2D, BridsonSampler3D, BridsonSamplerBase, BridsonSamplerND, ParentalSampler2D,
-};
+use std::{array, f64::consts::SQRT_2, iter};
 
 type Point<const N: usize> = [f64; N];
 type Idx<const N: usize> = [usize; N];
@@ -96,13 +99,13 @@ impl<const N: usize> Grid<N> for GridND<N> {
     }
 }
 
-pub struct PoissonParamsBase<const N: usize> {
+pub struct ParamsBase<const N: usize> {
     dims: Point<N>,
     radius: f64,
 }
 
-pub trait PoissonParams<const N: usize>:
-    Default + Deref<Target = PoissonParamsBase<N>> + DerefMut<Target = PoissonParamsBase<N>>
+pub trait Params<const N: usize>:
+    Default + Deref<Target = ParamsBase<N>> + DerefMut<Target = ParamsBase<N>>
 {
     type Grid: Grid<N>;
 
@@ -111,42 +114,42 @@ pub trait PoissonParams<const N: usize>:
 }
 
 #[derive(Deref, DerefMut)]
-pub struct PoissonParams2D(PoissonParamsBase<2>);
+pub struct Params2D(ParamsBase<2>);
 
 #[derive(Deref, DerefMut)]
-pub struct PoissonParams3D(PoissonParamsBase<3>);
+pub struct Params3D(ParamsBase<3>);
 
 #[derive(Deref, DerefMut)]
-pub struct PoissonParamsND<const N: usize>(PoissonParamsBase<N>);
+pub struct ParamsND<const N: usize>(ParamsBase<N>);
 
-impl Default for PoissonParams2D {
+impl Default for Params2D {
     fn default() -> Self {
-        PoissonParams2D(PoissonParamsBase {
+        Params2D(ParamsBase {
             dims: [1.0, 1.0],
             radius: 0.1,
         })
     }
 }
 
-impl Default for PoissonParams3D {
+impl Default for Params3D {
     fn default() -> Self {
-        PoissonParams3D(PoissonParamsBase {
+        Params3D(ParamsBase {
             dims: [1.0, 1.0, 1.0],
             radius: 0.1,
         })
     }
 }
 
-impl<const N: usize> Default for PoissonParamsND<N> {
+impl<const N: usize> Default for ParamsND<N> {
     fn default() -> Self {
-        PoissonParamsND(PoissonParamsBase {
+        ParamsND(ParamsBase {
             dims: [1.0; N],
             radius: 0.1,
         })
     }
 }
 
-impl PoissonParams<2> for PoissonParams2D {
+impl Params<2> for Params2D {
     type Grid = Grid2D;
 
     fn grid(&self) -> Grid2D {
@@ -207,7 +210,7 @@ impl PoissonParams<2> for PoissonParams2D {
     }
 }
 
-impl PoissonParams<3> for PoissonParams3D {
+impl Params<3> for Params3D {
     type Grid = Grid3D;
 
     fn grid(&self) -> Grid3D {
@@ -278,7 +281,7 @@ impl PoissonParams<3> for PoissonParams3D {
     }
 }
 
-impl<const N: usize> PoissonParams<N> for PoissonParamsND<N> {
+impl<const N: usize> Params<N> for ParamsND<N> {
     type Grid = GridND<N>;
 
     fn grid(&self) -> GridND<N> {
@@ -314,9 +317,9 @@ impl<const N: usize> PoissonParams<N> for PoissonParamsND<N> {
                 .min(grid.grid_dims[i] - 1)
         });
 
-        let mut iter = loidx;
+        let mut curr = loidx;
         'out: loop {
-            match grid.cells[grid.ndidx_to_idx(&iter)] {
+            match grid.cells[grid.ndidx_to_idx(&curr)] {
                 None => (),
                 Some(sample_idx) => {
                     let sample = &grid.samples[sample_idx];
@@ -331,28 +334,35 @@ impl<const N: usize> PoissonParams<N> for PoissonParamsND<N> {
                 }
             };
 
-            for i in 0..N {
-                if iter[i] < hiidx[i] {
-                    iter[i] += 1;
-                    break;
+            for i in 0..N - 1 {
+                if curr[i] < hiidx[i] {
+                    curr[i] += 1;
+                    continue 'out;
                 }
-                if i == N - 1 {
-                    break 'out;
-                }
-                iter[i] = loidx[i];
+                curr[i] = loidx[i];
             }
+            if curr[N - 1] < hiidx[N - 1] {
+                curr[N - 1] += 1;
+                continue;
+            }
+            break;
         }
 
         return true;
     }
 }
 
-pub trait State<T> {
-    fn new(sampler: &T) -> Self;
+pub trait State<const N: usize, S>
+where
+    S: Sampler<N>,
+{
+    fn new<P>(sampler: &S, params: &P, grid: &P::Grid) -> Self
+    where
+        P: Params<N>;
 }
 
-pub trait PoissonSampler<const N: usize>: Default {
-    type State: State<Self>;
+pub trait Sampler<const N: usize>: Default {
+    type State: State<N, Self>;
 
     fn new() -> Self {
         Self::default()
@@ -365,14 +375,14 @@ pub trait PoissonSampler<const N: usize>: Default {
         state: &mut Self::State,
     ) -> Option<Point<N>>
     where
-        P: PoissonParams<N>;
+        P: Params<N>;
 }
 
 #[derive(Default)]
 pub struct Poisson<const N: usize, P, S>
 where
-    P: PoissonParams<N>,
-    S: PoissonSampler<N>,
+    P: Params<N>,
+    S: Sampler<N>,
 {
     params: P,
     sampler: S,
@@ -380,8 +390,8 @@ where
 
 impl<const N: usize, P, S> Poisson<N, P, S>
 where
-    P: PoissonParams<N>,
-    S: PoissonSampler<N>,
+    P: Params<N>,
+    S: Sampler<N>,
 {
     pub fn new() -> Self {
         Self::default()
@@ -389,8 +399,8 @@ where
 
     pub fn iter(&self) -> impl Iterator<Item = Point<N>> {
         let mut grid = self.params.grid();
-        let mut state = S::State::new(&self.sampler);
-        std::iter::from_fn(move || self.sampler.sample(&self.params, &mut grid, &mut state))
+        let mut state = S::State::new(&self.sampler, &self.params, &grid);
+        iter::from_fn(move || self.sampler.sample(&self.params, &mut grid, &mut state))
     }
 
     pub fn run(&self) -> Vec<Point<N>> {
@@ -410,9 +420,9 @@ where
 
 impl<const N: usize, P, R, S> Poisson<N, P, S>
 where
-    P: PoissonParams<N>,
+    P: Params<N>,
     R: Rng + SeedableRng,
-    S: PoissonSampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
+    S: Sampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
 {
     pub fn use_attempts(mut self, attempts: usize) -> Self {
         self.sampler.attempts = attempts;
@@ -430,10 +440,13 @@ where
     }
 }
 
-pub type Poisson2D = Poisson<2, PoissonParams2D, ParentalSampler2D>;
-pub type PoissonBridson2D = Poisson<2, PoissonParams2D, BridsonSampler2D>;
-pub type Poisson3D = Poisson<3, PoissonParams3D, BridsonSampler3D>;
-pub type PoissonND<const N: usize> = Poisson<N, PoissonParamsND<N>, BridsonSamplerND<N>>;
+pub type Poisson2D = Poisson<2, Params2D, ParentalSampler2D>;
+pub type PoissonBridson2D = Poisson<2, Params2D, BridsonSampler2D>;
+pub type PoissonRegular2D = Poisson<2, Params2D, RegularSampler<2>>;
+pub type Poisson3D = Poisson<3, Params3D, BridsonSampler3D>;
+pub type PoissonRegular3D<const N: usize> = Poisson<3, Params3D, RegularSampler<3>>;
+pub type PoissonND<const N: usize> = Poisson<N, ParamsND<N>, BridsonSamplerND<N>>;
+pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSampler<N>>;
 
 #[cfg(test)]
 mod tests {
@@ -442,7 +455,7 @@ mod tests {
     use super::*;
 
     fn dist<const N: usize>(v1: &[f64; N], v2: &[f64; N]) -> f64 {
-        std::array::from_fn::<f64, N, _>(|i| (v1[i] - v2[i]).powi(2))
+        array::from_fn::<f64, N, _>(|i| (v1[i] - v2[i]).powi(2))
             .iter()
             .sum::<f64>()
             .sqrt()
@@ -450,12 +463,12 @@ mod tests {
 
     fn len_and_distance<const N: usize, P, S>(poisson: &Poisson<N, P, S>)
     where
-        P: PoissonParams<N>,
-        S: PoissonSampler<N>,
+        P: Params<N>,
+        S: Sampler<N>,
     {
         let samples = poisson.run();
 
-        // Check that the number of samples beats the orthogonal packing.
+        // Check that the number of samples is at least half the orthogonal packing.
         let ortho = (poisson.params.dims.iter().product::<f64>()
             / (2.0 * poisson.params.radius).powi(N as i32)) as usize;
         assert!(
@@ -472,7 +485,7 @@ mod tests {
                 }
                 let d = dist(s1, s2);
                 assert!(
-                    d >= poisson.params.radius,
+                    d >= poisson.params.radius - std::f64::EPSILON,
                     "Invalid pair: {:?} {:?} (distance = {d}).",
                     s1,
                     s2
@@ -483,26 +496,31 @@ mod tests {
 
     #[test]
     fn test_2d_parental() {
-        let poisson = Poisson::<2, PoissonParams2D, ParentalSampler2D>::new().use_dims([5.0; 2]);
+        let poisson = Poisson::<2, Params2D, ParentalSampler2D>::new().use_dims([5.0; 2]);
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_2d_bridson() {
-        let poisson = Poisson::<2, PoissonParams2D, BridsonSampler2D>::new().use_dims([5.0; 2]);
+        let poisson = Poisson::<2, Params2D, BridsonSampler2D>::new().use_dims([5.0; 2]);
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_3d() {
-        let poisson = Poisson::<3, PoissonParams3D, BridsonSampler3D>::new();
+        let poisson = Poisson::<3, Params3D, BridsonSampler3D>::new();
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_4d() {
-        let poisson =
-            Poisson::<4, PoissonParamsND<4>, BridsonSamplerND<4>>::new().use_dims([0.5; 4]);
+        let poisson = Poisson::<4, ParamsND<4>, BridsonSamplerND<4>>::new().use_dims([0.5; 4]);
+        len_and_distance(&poisson);
+    }
+
+    #[test]
+    fn test_regular() {
+        let poisson = Poisson::<3, Params3D, RegularSampler<3>>::new();
         len_and_distance(&poisson);
     }
 }

@@ -1,5 +1,5 @@
 use super::Point;
-use crate::{Grid, PoissonParams, PoissonSampler, State};
+use crate::{Grid, Params, Sampler, State};
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
@@ -26,14 +26,19 @@ where
     rng: R,
 }
 
-impl<const N: usize, B, R> State<B> for BridsonState<R>
+impl<const N: usize, B, R> State<N, B> for BridsonState<R>
 where
-    B: Deref<Target = BridsonSamplerBase<N, R>>,
+    B: Sampler<N> + Deref<Target = BridsonSamplerBase<N, R>>,
     R: Rng + SeedableRng,
 {
-    fn new(sampler: &B) -> Self {
+    fn new<P>(sampler: &B, _params: &P, grid: &P::Grid) -> Self
+    where
+        P: Params<N>,
+    {
+        let mut active = Vec::new();
+        active.reserve(grid.cells.len());
         BridsonState {
-            active: Vec::new(),
+            active,
             rng: match sampler.random.seed {
                 None => R::from_os_rng(),
                 Some(seed) => R::seed_from_u64(seed),
@@ -42,13 +47,18 @@ where
     }
 }
 
-impl<R> State<ParentalSampler2D<R>> for ParentalState<R>
+impl<R> State<2, ParentalSampler2D<R>> for ParentalState<R>
 where
     R: Rng + SeedableRng,
 {
-    fn new(sampler: &ParentalSampler2D<R>) -> Self {
+    fn new<P>(sampler: &ParentalSampler2D<R>, _params: &P, grid: &P::Grid) -> Self
+    where
+        P: Params<2>,
+    {
+        let mut active = Vec::new();
+        active.reserve(grid.cells.len());
         ParentalState {
-            active: Vec::new(),
+            active,
             rng: match sampler.random.seed {
                 None => R::from_os_rng(),
                 Some(seed) => R::seed_from_u64(seed),
@@ -158,7 +168,7 @@ where
     }
 }
 
-impl<R> PoissonSampler<2> for BridsonSampler2D<R>
+impl<R> Sampler<2> for BridsonSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
@@ -171,7 +181,7 @@ where
         state: &mut BridsonState<R>,
     ) -> Option<Point<2>>
     where
-        P: PoissonParams<2>,
+        P: Params<2>,
     {
         if grid.samples.len() == 0 {
             let p = [
@@ -214,7 +224,7 @@ where
     }
 }
 
-impl<R> PoissonSampler<3> for BridsonSampler3D<R>
+impl<R> Sampler<3> for BridsonSampler3D<R>
 where
     R: Rng + SeedableRng,
 {
@@ -227,7 +237,7 @@ where
         state: &mut BridsonState<R>,
     ) -> Option<Point<3>>
     where
-        P: PoissonParams<3>,
+        P: Params<3>,
     {
         if grid.samples.len() == 0 {
             let p = [
@@ -280,7 +290,7 @@ where
     }
 }
 
-impl<const N: usize, R> PoissonSampler<N> for BridsonSamplerND<N, R>
+impl<const N: usize, R> Sampler<N> for BridsonSamplerND<N, R>
 where
     R: Rng + SeedableRng,
 {
@@ -293,7 +303,7 @@ where
         state: &mut BridsonState<R>,
     ) -> Option<Point<N>>
     where
-        P: PoissonParams<N>,
+        P: Params<N>,
     {
         if grid.samples.len() == 0 {
             let p = params.dims.map(|x| state.rng.random_range(0.0..=x));
@@ -334,7 +344,7 @@ where
     }
 }
 
-impl<R> PoissonSampler<2> for ParentalSampler2D<R>
+impl<R> Sampler<2> for ParentalSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
@@ -347,7 +357,7 @@ where
         state: &mut ParentalState<R>,
     ) -> Option<Point<2>>
     where
-        P: PoissonParams<2>,
+        P: Params<2>,
     {
         if grid.samples.len() == 0 {
             let p = params.dims.map(|x| state.rng.random_range(0.0..=x));
@@ -377,7 +387,7 @@ where
                     let outer = ((dist2 + 3.0) / (4.0 * dist)).acos();
                     let inner = (0.5 * dist).acos();
                     let beta = outer.min(inner);
-                    alpha + beta..alpha + std::f64::consts::TAU - beta
+                    alpha + beta..alpha + TAU - beta
                 }
             };
 
