@@ -3,9 +3,8 @@ use faster_poisson::{
     plot::{plot_2d, plot_3d},
 };
 
-#[cfg(feature = "plotly")]
-fn main() -> std::io::Result<()> {
-    std::fs::create_dir_all("examples/plot/plots")?;
+fn main() {
+    let _ = std::fs::create_dir_all("examples/plot/images");
 
     let poisson = Poisson2D::new()
         .use_dims([5.0; 2])
@@ -14,10 +13,10 @@ fn main() -> std::io::Result<()> {
     plot_2d(
         &samples,
         [1000, 1000],
-        String::from("examples/plot/plots/plot_2d.html"),
+        String::from("examples/plot/images/plot_2d.html"),
     );
     println!(
-        "Plotted {} samples in examples/plot/plots/plot_2d.html",
+        "Plotted {} samples in examples/plot/images/plot_2d.html",
         samples.len()
     );
 
@@ -26,12 +25,10 @@ fn main() -> std::io::Result<()> {
     plot_3d(
         &samples,
         [1000, 1000],
-        String::from("examples/plot/plots/plot_3d.html"),
+        String::from("examples/plot/images/plot_3d.html"),
     );
     println!(
-        "Plotted {} samples in examples/plot/plots/plot_23.html",
+        "Plotted {} samples in examples/plot/images/plot_23.html",
         samples.len()
     );
-
-    Ok(())
 }

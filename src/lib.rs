@@ -1,5 +1,8 @@
-pub mod bridson;
-pub mod regular;
+mod bridson;
+mod regular;
+
+#[cfg(feature = "fourier")]
+pub mod fourier;
 
 #[cfg(feature = "plotly")]
 pub mod plot;
@@ -162,13 +165,11 @@ impl Params<2> for Params2D {
             (self.dims[1] / cell_len).ceil() as usize,
         ];
         let grid_len = grid_dims[0] * grid_dims[1];
-        let mut samples = Vec::new();
-        samples.reserve(grid_len);
         Grid2D(GridBase {
             cell_len,
             grid_dims,
             cells: vec![None; grid_len],
-            samples,
+            samples: Vec::with_capacity(grid_len),
         })
     }
 
@@ -224,13 +225,11 @@ impl Params<3> for Params3D {
             (self.dims[2] / cell_len).ceil() as usize,
         ];
         let grid_len = grid_dims[0] * grid_dims[1] * grid_dims[2];
-        let mut samples = Vec::new();
-        samples.reserve(grid_len);
         Grid3D(GridBase {
             cell_len,
             grid_dims,
             cells: vec![None; grid_len],
-            samples,
+            samples: Vec::with_capacity(grid_len),
         })
     }
 
@@ -291,13 +290,11 @@ impl<const N: usize> Params<N> for ParamsND<N> {
         let cell_len = self.radius / (N as f64).sqrt();
         let grid_dims = self.dims.map(|x| (x / cell_len).ceil() as usize);
         let grid_len = grid_dims.iter().product();
-        let mut samples = Vec::new();
-        samples.reserve(grid_len);
         GridND(GridBase {
             cell_len,
             grid_dims,
             cells: vec![None; grid_len],
-            samples,
+            samples: Vec::with_capacity(grid_len),
         })
     }
 

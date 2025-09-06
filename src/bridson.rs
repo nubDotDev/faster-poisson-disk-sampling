@@ -35,10 +35,8 @@ where
     where
         P: Params<N>,
     {
-        let mut active = Vec::new();
-        active.reserve(grid.cells.len());
         BridsonState {
-            active,
+            active: Vec::with_capacity(grid.cells.len()),
             rng: match sampler.random.seed {
                 None => R::from_os_rng(),
                 Some(seed) => R::seed_from_u64(seed),
@@ -55,10 +53,8 @@ where
     where
         P: Params<2>,
     {
-        let mut active = Vec::new();
-        active.reserve(grid.cells.len());
         ParentalState {
-            active,
+            active: Vec::with_capacity(grid.cells.len()),
             rng: match sampler.random.seed {
                 None => R::from_os_rng(),
                 Some(seed) => R::seed_from_u64(seed),
@@ -161,7 +157,7 @@ where
 {
     fn default() -> Self {
         ParentalSampler2D(BridsonSamplerBase {
-            attempts: 21,
+            attempts: 20,
             cdf_exp: 1.0,
             random: RandomSampler::default(),
         })
