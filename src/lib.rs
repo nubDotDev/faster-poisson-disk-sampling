@@ -1,8 +1,8 @@
-mod bridson;
-mod regular;
+pub mod bridson;
+pub mod regular;
 
 #[cfg(feature = "plotly")]
-mod plot;
+pub mod plot;
 
 use crate::{
     bridson::{
