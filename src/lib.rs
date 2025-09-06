@@ -1,6 +1,9 @@
 mod bridson;
 mod regular;
 
+#[cfg(feature = "plotly")]
+mod plot;
+
 use crate::{
     bridson::{
         BridsonSampler2D, BridsonSampler3D, BridsonSamplerBase, BridsonSamplerND, ParentalSampler2D,
@@ -496,25 +499,33 @@ mod tests {
 
     #[test]
     fn test_2d_parental() {
-        let poisson = Poisson::<2, Params2D, ParentalSampler2D>::new().use_dims([5.0; 2]);
+        let poisson = Poisson::<2, Params2D, ParentalSampler2D>::new()
+            .use_dims([5.0; 2])
+            .use_seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_2d_bridson() {
-        let poisson = Poisson::<2, Params2D, BridsonSampler2D>::new().use_dims([5.0; 2]);
+        let poisson = Poisson::<2, Params2D, BridsonSampler2D>::new()
+            .use_dims([5.0; 2])
+            .use_seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_3d() {
-        let poisson = Poisson::<3, Params3D, BridsonSampler3D>::new();
+        let poisson = Poisson::<3, Params3D, BridsonSampler3D>::new()
+            .use_dims([2.0; 3])
+            .use_seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_4d() {
-        let poisson = Poisson::<4, ParamsND<4>, BridsonSamplerND<4>>::new().use_dims([0.5; 4]);
+        let poisson = Poisson::<4, ParamsND<4>, BridsonSamplerND<4>>::new()
+            .use_dims([0.5; 4])
+            .use_seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
