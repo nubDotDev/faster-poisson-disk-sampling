@@ -1,6 +1,13 @@
-use faster_poisson::{ParentalNbhdSampler, Poisson, StandardNbhdSampler};
+use faster_poisson::{Poisson2D, PoissonBridson2D};
 use rand::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
+
+struct Result {
+    avg_len: f64,
+    attempts: usize,
+    cdf_exp: f64,
+    sampler: String,
+}
 
 fn main() {
     let n = 100;
@@ -12,18 +19,20 @@ fn main() {
     let nf64 = n as f64;
     let mut rng = Xoshiro256StarStar::seed_from_u64(0xDEADBEEF);
 
+    let mut results = Vec::<Result>::new();
+
     println!(
         "Averages taken over {n} trials on a(n) {} by {} grid with minimum distance {radius}...",
         dims[0], dims[1]
     );
     for attempts in num_attempts {
-        println!("With {attempts} attempts:");
+        println!("  With {attempts} attempts:");
         for cdf_exp in cdf_exps {
-            println!("  With CDF exponent {cdf_exp}:");
-            let mut standard_avg = 0.0;
+            println!("    With CDF exponent {cdf_exp}:");
+            let mut bridson_avg = 0.0;
             let mut parental_avg = 0.0;
             for _ in 0..n {
-                standard_avg += Poisson::<2, StandardNbhdSampler<2>>::new()
+                bridson_avg += PoissonBridson2D::new()
                     .use_dims(dims)
                     .use_radius(radius)
                     .use_attempts(attempts)
@@ -31,7 +40,7 @@ fn main() {
                     .use_seed(Some(rng.next_u64()))
                     .run()
                     .len() as f64;
-                parental_avg += Poisson::<2, ParentalNbhdSampler<2>>::new()
+                parental_avg += Poisson2D::new()
                     .use_dims(dims)
                     .use_radius(radius)
                     .use_attempts(attempts)
@@ -40,10 +49,31 @@ fn main() {
                     .run()
                     .len() as f64;
             }
-            standard_avg /= nf64;
+            bridson_avg /= nf64;
             parental_avg /= nf64;
-            println!("    Standard: {standard_avg}");
-            println!("    Parental: {parental_avg}");
+            println!("      Standard: {bridson_avg}");
+            println!("      Parental: {parental_avg}");
+            results.push(Result {
+                avg_len: bridson_avg,
+                attempts,
+                cdf_exp,
+                sampler: String::from("Bridson"),
+            });
+            results.push(Result {
+                avg_len: parental_avg,
+                attempts,
+                cdf_exp,
+                sampler: String::from("Parental"),
+            });
         }
+    }
+
+    results.sort_by(|a, b| f64::total_cmp(&a.avg_len, &b.avg_len));
+    println!("\n\nRanking:");
+    for (i, result) in results.iter().rev().enumerate() {
+        println!(
+            "  {i:2}) {:8}  attempts={}  cdf_exp={:<3} | {}",
+            result.sampler, result.attempts, result.cdf_exp, result.avg_len
+        );
     }
 }
