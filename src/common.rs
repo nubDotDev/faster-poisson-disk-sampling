@@ -1,6 +1,5 @@
 use derive_more::with_trait::{Deref, DerefMut};
-use rand::{Rng, SeedableRng};
-use std::{array, f64::consts::SQRT_2, marker::PhantomData};
+use std::{array, f64::consts::SQRT_2};
 
 pub(crate) type Point<const N: usize> = [f64; N];
 pub(crate) type Idx<const N: usize> = [usize; N];
@@ -358,22 +357,20 @@ pub trait Sampler<const N: usize>: Default {
         P: Params<N>;
 }
 
-pub(crate) struct Random<R>
-where
-    R: Rng + SeedableRng,
-{
+pub struct Random {
+    pub(crate) attempts: usize,
     pub(crate) seed: Option<u64>,
-    _rng: PhantomData<R>,
 }
 
-impl<R> Default for Random<R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
+impl Random {
+    pub(crate) fn new(attempts: usize) -> Self {
         Random {
+            attempts,
             seed: None,
-            _rng: Default::default(),
         }
     }
+}
+
+pub trait HasRandom {
+    fn get_random_mut(&mut self) -> &mut Random;
 }

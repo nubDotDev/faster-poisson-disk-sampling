@@ -8,7 +8,7 @@ fn main() {
     let pixels_per_unit = 100;
     let brightness = 3.0;
 
-    let poisson = Poisson2D::new().use_dims(dims).use_seed(Some(0xDEADBEEF));
+    let poisson = Poisson2D::new().dims(dims).seed(Some(0xDEADBEEF));
     let samples = poisson.run();
     fourier(
         &samples,
@@ -24,9 +24,7 @@ fn main() {
     );
     println!("Calculated Fourier transform for parental sampler.");
 
-    let poisson = PoissonBridson2D::new()
-        .use_dims(dims)
-        .use_seed(Some(0xDEADBEEF));
+    let poisson = PoissonBridson2D::new().dims(dims).seed(Some(0xDEADBEEF));
     let samples = poisson.run();
     fourier(
         &samples,
@@ -42,9 +40,7 @@ fn main() {
     );
     println!("Calculated Fourier transform for Bridson sampler.");
 
-    let poisson = PoissonDart2D::new()
-        .use_dims(dims)
-        .use_seed(Some(0xDEADBEEF));
+    let poisson = PoissonDart2D::new().dims(dims).seed(Some(0xDEADBEEF));
     let samples = poisson.run();
     fourier(
         &samples,
@@ -60,7 +56,7 @@ fn main() {
     );
     println!("Calculated Fourier transform for dart sampler.");
 
-    let poisson = PoissonRegular2D::new().use_dims(dims);
+    let poisson = PoissonRegular2D::new().dims(dims);
     let samples = poisson.run();
     fourier(
         &samples,

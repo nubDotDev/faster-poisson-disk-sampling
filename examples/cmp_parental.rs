@@ -33,19 +33,19 @@ fn main() {
             let mut parental_avg = 0.0;
             for _ in 0..n {
                 bridson_avg += PoissonBridson2D::new()
-                    .use_dims(dims)
-                    .use_radius(radius)
-                    .use_attempts(attempts)
-                    .use_cdf_exp(cdf_exp)
-                    .use_seed(Some(rng.next_u64()))
+                    .dims(dims)
+                    .radius(radius)
+                    .attempts(attempts)
+                    .cdf_exp(cdf_exp)
+                    .seed(Some(rng.next_u64()))
                     .run()
                     .len() as f64;
                 parental_avg += Poisson2D::new()
-                    .use_dims(dims)
-                    .use_radius(radius)
-                    .use_attempts(attempts)
-                    .use_cdf_exp(cdf_exp)
-                    .use_seed(Some(rng.next_u64()))
+                    .dims(dims)
+                    .radius(radius)
+                    .attempts(attempts)
+                    .cdf_exp(cdf_exp)
+                    .seed(Some(rng.next_u64()))
                     .run()
                     .len() as f64;
             }

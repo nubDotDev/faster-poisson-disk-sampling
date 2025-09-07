@@ -13,10 +13,9 @@ pub fn fourier(
     brightness: f64,
     path: String,
 ) {
+    // Turn the samples into binary pixels.
     let image_dims = dims.map(|x| (x * pixels_per_unit as f64).ceil() as usize);
     let mut pixels = vec![vec![Complex64::zero(); image_dims[0]]; image_dims[1]];
-
-    // Turn the samples into binary pixels.
     for sample in samples {
         pixels[((image_dims[1] as f64 * sample[1] / dims[1]).floor() as usize)
             .min(image_dims[1] - 1)][((image_dims[0] as f64 * sample[0] / dims[0]).floor()
@@ -34,15 +33,15 @@ pub fn fourier(
     }
 
     // Take the transpose.
-    let mut quad_t = vec![vec![Complex64::zero(); image_dims[1]]; image_dims[0]];
+    let mut pixels_t = vec![vec![Complex64::zero(); image_dims[1]]; image_dims[0]];
     for i in 0..image_dims[0] {
         for j in 0..image_dims[1] {
-            quad_t[i][j] = pixels[j][i];
+            pixels_t[i][j] = pixels[j][i];
         }
     }
 
     // Compute the DFTs of the columns.
-    for col in quad_t.iter_mut() {
+    for col in pixels_t.iter_mut() {
         col_fft.process(col);
     }
 
@@ -52,7 +51,7 @@ pub fn fourier(
     let nyquist = [image_dims[0] / 2, image_dims[1] / 2];
     for i in 0..image_dims[0] {
         for j in 0..image_dims[1] {
-            let gray = [(255.0 * quad_t[i][j].norm() * scale).round() as u8];
+            let gray = [(255.0 * pixels_t[i][j].norm() * scale).round() as u8];
             let x = if i >= nyquist[0] {
                 i - nyquist[0]
             } else {

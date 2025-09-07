@@ -4,8 +4,8 @@ fn main() {
     let _ = std::fs::create_dir_all("examples/plot/images");
 
     let poisson = Poisson2D::new()
-        .use_dims([5.0; 2])
-        .use_seed(Some(0xDEADBEEF));
+        .dims([5.0; 2])
+        .seed(Some(0xDEADBEEF));
     let samples = poisson.run();
     plot_2d(
         &samples,
@@ -17,7 +17,7 @@ fn main() {
         samples.len()
     );
 
-    let poisson = Poisson3D::new().use_seed(Some(0xDEADBEEF));
+    let poisson = Poisson3D::new().seed(Some(0xDEADBEEF));
     let samples = poisson.run();
     plot_3d(
         &samples,

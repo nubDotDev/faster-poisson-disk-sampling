@@ -47,12 +47,12 @@ where
         self.iter().collect()
     }
 
-    pub fn use_dims(mut self, dims: Point<N>) -> Self {
+    pub fn dims(mut self, dims: Point<N>) -> Self {
         self.params.dims = dims;
         self
     }
 
-    pub fn use_radius(mut self, radius: f64) -> Self {
+    pub fn radius(mut self, radius: f64) -> Self {
         self.params.radius = radius;
         self
     }
@@ -64,44 +64,34 @@ where
     R: Rng + SeedableRng,
     S: Sampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
 {
-    pub fn use_attempts(mut self, attempts: usize) -> Self {
-        self.sampler.attempts = attempts;
-        self
-    }
-
-    pub fn use_cdf_exp(mut self, cdf_exp: f64) -> Self {
+    pub fn cdf_exp(mut self, cdf_exp: f64) -> Self {
         self.sampler.cdf_exp = cdf_exp;
-        self
-    }
-
-    pub fn use_seed(mut self, seed: Option<u64>) -> Self {
-        self.sampler.random.seed = seed;
         self
     }
 }
 
-impl<const N: usize, P, R> Poisson<N, P, DartSamplerND<N, R>>
+impl<const N: usize, P, S> Poisson<N, P, S>
 where
     P: Params<N>,
-    R: Rng + SeedableRng,
+    S: Sampler<N> + DerefMut<Target: HasRandom>,
 {
-    pub fn use_attempts(mut self, attempts: usize) -> Self {
-        self.sampler.attempts = attempts;
+    pub fn attempts(mut self, attempts: usize) -> Self {
+        self.sampler.get_random_mut().attempts = attempts;
         self
     }
 
-    pub fn use_seed(mut self, seed: Option<u64>) -> Self {
-        self.sampler.random.seed = seed;
+    pub fn seed(mut self, seed: Option<u64>) -> Self {
+        self.sampler.get_random_mut().seed = seed;
         self
     }
 }
 
 pub type Poisson2D = Poisson<2, Params2D, ParentalSampler2D>;
 pub type PoissonBridson2D = Poisson<2, Params2D, BridsonSampler2D>;
-pub type PoissonDart2D = Poisson<2, Params2D, DartSamplerND<2>>;
+pub type PoissonDart2D = Poisson<2, Params2D, DartSampler2D>;
 pub type PoissonRegular2D = Poisson<2, Params2D, RegularSamplerND<2>>;
 pub type Poisson3D = Poisson<3, Params3D, BridsonSampler3D>;
-pub type PoissonDart3D = Poisson<3, Params3D, DartSamplerND<3>>;
+pub type PoissonDart3D = Poisson<3, Params3D, DartSampler3D>;
 pub type PoissonRegular3D<const N: usize> = Poisson<3, Params3D, RegularSamplerND<3>>;
 pub type PoissonND<const N: usize> = Poisson<N, ParamsND<N>, BridsonSamplerND<N>>;
 pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSamplerND<N>>;
@@ -155,38 +145,56 @@ mod tests {
     #[test]
     fn test_2d_parental() {
         let poisson = Poisson::<2, Params2D, ParentalSampler2D>::new()
-            .use_dims([5.0; 2])
-            .use_seed(Some(0xDEADBEEF));
+            .dims([5.0; 2])
+            .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_2d_bridson() {
         let poisson = Poisson::<2, Params2D, BridsonSampler2D>::new()
-            .use_dims([5.0; 2])
-            .use_seed(Some(0xDEADBEEF));
+            .dims([5.0; 2])
+            .seed(Some(0xDEADBEEF));
+        len_and_distance(&poisson);
+    }
+
+    #[test]
+    fn test_2d_dart() {
+        let poisson = Poisson::<2, Params2D, DartSampler2D>::new()
+            .dims([5.0; 2])
+            .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_3d() {
         let poisson = Poisson::<3, Params3D, BridsonSampler3D>::new()
-            .use_dims([2.0; 3])
-            .use_seed(Some(0xDEADBEEF));
+            .dims([2.0; 3])
+            .seed(Some(0xDEADBEEF));
+        len_and_distance(&poisson);
+    }
+
+    #[test]
+    fn test_3d_dart() {
+        let poisson = Poisson::<3, Params3D, DartSampler3D>::new()
+            .dims([2.0; 3])
+            .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_4d() {
         let poisson = Poisson::<4, ParamsND<4>, BridsonSamplerND<4>>::new()
-            .use_dims([0.5; 4])
-            .use_seed(Some(0xDEADBEEF));
+            .dims([0.5; 4])
+            .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 
     #[test]
-    fn test_dart() {
-        let poisson = Poisson::<3, Params3D, DartSamplerND<3>>::new();
+    fn test_4d_dart() {
+        let poisson = Poisson::<4, ParamsND<4>, DartSamplerND<4>>::new()
+            .dims([0.5; 4])
+            .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 

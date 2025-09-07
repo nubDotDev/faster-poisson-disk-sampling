@@ -9,9 +9,9 @@ fn main() {
         dims[0], dims[1]
     );
     let poisson = Poisson2D::new()
-        .use_dims(dims)
-        .use_radius(radius)
-        .use_seed(Some(0xDEADBEEF));
+        .dims(dims)
+        .radius(radius)
+        .seed(Some(0xDEADBEEF));
     let start = Instant::now();
     let samples = poisson.run();
     let elapsed = start.elapsed();

@@ -1,9 +1,12 @@
 use super::Point;
-use crate::{Grid, Params, Sampler, common::Random};
+use crate::{
+    Grid, Params, Sampler,
+    common::{HasRandom, Random},
+};
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
-use std::{array, f64::consts::TAU, iter};
+use std::{array, f64::consts::TAU, iter, marker::PhantomData};
 
 struct ActiveSample {
     idx: usize,
@@ -30,9 +33,9 @@ pub struct BridsonSamplerBase<const N: usize, R>
 where
     R: Rng + SeedableRng,
 {
-    pub(crate) attempts: usize,
     pub(crate) cdf_exp: f64,
-    pub(crate) random: Random<R>,
+    pub(crate) random: Random,
+    _rng: PhantomData<R>,
 }
 
 #[derive(Deref, DerefMut)]
@@ -55,16 +58,34 @@ pub struct ParentalSampler2D<R = Xoshiro256StarStar>(BridsonSamplerBase<2, R>)
 where
     R: Rng + SeedableRng;
 
+impl<const N: usize, R> HasRandom for BridsonSamplerBase<N, R>
+where
+    R: Rng + SeedableRng,
+{
+    fn get_random_mut(&mut self) -> &mut Random {
+        &mut self.random
+    }
+}
+
+impl<const N: usize, R> Default for BridsonSamplerBase<N, R>
+where
+    R: Rng + SeedableRng,
+{
+    fn default() -> Self {
+        BridsonSamplerBase {
+            cdf_exp: 2.0,
+            random: Random::new(30),
+            _rng: Default::default(),
+        }
+    }
+}
+
 impl<R> Default for BridsonSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
     fn default() -> Self {
-        BridsonSampler2D(BridsonSamplerBase {
-            attempts: 30,
-            cdf_exp: 2.0,
-            random: Random::default(),
-        })
+        BridsonSampler2D(BridsonSamplerBase::default())
     }
 }
 
@@ -73,11 +94,7 @@ where
     R: Rng + SeedableRng,
 {
     fn default() -> Self {
-        BridsonSampler3D(BridsonSamplerBase {
-            attempts: 30,
-            cdf_exp: 2.0,
-            random: Random::default(),
-        })
+        BridsonSampler3D(BridsonSamplerBase::default())
     }
 }
 
@@ -86,11 +103,7 @@ where
     R: Rng + SeedableRng,
 {
     fn default() -> Self {
-        BridsonSamplerND(BridsonSamplerBase {
-            attempts: 30,
-            cdf_exp: 2.0,
-            random: Random::default(),
-        })
+        BridsonSamplerND(BridsonSamplerBase::default())
     }
 }
 
@@ -100,10 +113,28 @@ where
 {
     fn default() -> Self {
         ParentalSampler2D(BridsonSamplerBase {
-            attempts: 20,
             cdf_exp: 1.0,
-            random: Random::default(),
+            random: Random::new(20),
+            _rng: Default::default(),
         })
+    }
+}
+
+fn new_state<const N: usize, P, R>(
+    sampler: &impl Deref<Target = BridsonSamplerBase<N, R>>,
+    _params: &P,
+    grid: &P::Grid,
+) -> BridsonState<R>
+where
+    P: Params<N>,
+    R: Rng + SeedableRng,
+{
+    BridsonState {
+        active: Vec::with_capacity(grid.cells.len()),
+        rng: match sampler.random.seed {
+            None => R::from_os_rng(),
+            Some(seed) => R::seed_from_u64(seed),
+        },
     }
 }
 
@@ -117,13 +148,7 @@ where
     where
         P: Params<2>,
     {
-        BridsonState {
-            active: Vec::with_capacity(grid.cells.len()),
-            rng: match self.random.seed {
-                None => R::from_os_rng(),
-                Some(seed) => R::seed_from_u64(seed),
-            },
-        }
+        new_state(self, _params, grid)
     }
 
     fn sample<P>(
@@ -158,7 +183,7 @@ where
                 let theta = state.rng.random_range(0.0..TAU);
                 Some([p[0] + s * theta.cos(), p[1] + s * theta.sin()])
             })
-            .take(self.attempts)
+            .take(self.random.attempts)
             .find(|cand| params.is_sample_valid(&cand, grid));
 
             match p_opt {
@@ -186,13 +211,7 @@ where
     where
         P: Params<3>,
     {
-        BridsonState {
-            active: Vec::with_capacity(grid.cells.len()),
-            rng: match self.random.seed {
-                None => R::from_os_rng(),
-                Some(seed) => R::seed_from_u64(seed),
-            },
-        }
+        new_state(self, _params, grid)
     }
 
     fn sample<P>(
@@ -237,7 +256,7 @@ where
                     p[2] + scale * v[2],
                 ])
             })
-            .take(self.attempts)
+            .take(self.random.attempts)
             .find(|cand| params.is_sample_valid(&cand, grid));
 
             match p_opt {
@@ -265,13 +284,7 @@ where
     where
         P: Params<N>,
     {
-        BridsonState {
-            active: Vec::with_capacity(grid.cells.len()),
-            rng: match self.random.seed {
-                None => R::from_os_rng(),
-                Some(seed) => R::seed_from_u64(seed),
-            },
-        }
+        new_state(self, _params, grid)
     }
 
     fn sample<P>(
@@ -304,7 +317,7 @@ where
                 let scale = s / v.iter().map(|x| x * x).sum::<f64>().sqrt();
                 Some(array::from_fn(|i| p[i] + scale * v[i]))
             })
-            .take(self.attempts)
+            .take(self.random.attempts)
             .find(|cand| params.is_sample_valid(&cand, grid));
 
             match p_opt {
@@ -392,7 +405,7 @@ where
                 let theta = state.rng.random_range(theta_range.clone());
                 Some([p[0] + s * theta.cos(), p[1] + s * theta.sin()])
             })
-            .take(self.attempts)
+            .take(self.random.attempts)
             .find(|cand| params.is_sample_valid(&cand, grid));
 
             match p_opt {
