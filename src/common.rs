@@ -1,5 +1,6 @@
 use derive_more::with_trait::{Deref, DerefMut};
-use std::{array, f64::consts::SQRT_2};
+use rand::{Rng, SeedableRng};
+use std::{array, f64::consts::SQRT_2, marker::PhantomData};
 
 pub(crate) type Point<const N: usize> = [f64; N];
 pub(crate) type Idx<const N: usize> = [usize; N];
@@ -14,6 +15,7 @@ pub struct GridBase<const N: usize> {
 pub trait Grid<const N: usize>:
     Deref<Target = GridBase<N>> + DerefMut<Target = GridBase<N>>
 {
+    fn idx_to_ndidx(&self, idx: usize) -> Idx<N>;
     fn ndidx_to_idx(&self, ndidx: &Idx<N>) -> usize;
     fn point_to_ndidx(&self, p: &Point<N>) -> Idx<N>;
 
@@ -42,6 +44,11 @@ pub struct GridND<const N: usize>(GridBase<N>);
 
 impl Grid<2> for Grid2D {
     #[inline(always)]
+    fn idx_to_ndidx(&self, idx: usize) -> Idx<2> {
+        [idx % self.grid_dims[0], idx / self.grid_dims[0]]
+    }
+
+    #[inline(always)]
     fn ndidx_to_idx(&self, ndidx: &Idx<2>) -> usize {
         ndidx[0] + self.grid_dims[0] * ndidx[1]
     }
@@ -56,6 +63,15 @@ impl Grid<2> for Grid2D {
 }
 
 impl Grid<3> for Grid3D {
+    #[inline(always)]
+    fn idx_to_ndidx(&self, idx: usize) -> Idx<3> {
+        [
+            idx % self.grid_dims[0],
+            (idx / self.grid_dims[0]) % self.grid_dims[1],
+            idx / (self.grid_dims[0] * self.grid_dims[1]),
+        ]
+    }
+
     #[inline(always)]
     fn ndidx_to_idx(&self, ndidx: &Idx<3>) -> usize {
         ndidx[0] + self.grid_dims[0] * ndidx[1] + self.grid_dims[0] * self.grid_dims[1] * ndidx[2]
@@ -72,6 +88,16 @@ impl Grid<3> for Grid3D {
 }
 
 impl<const N: usize> Grid<N> for GridND<N> {
+    #[inline(always)]
+    fn idx_to_ndidx(&self, idx: usize) -> Idx<N> {
+        let mut idx = idx;
+        array::from_fn(|i| {
+            let ret = idx % self.grid_dims[i];
+            idx /= self.grid_dims[i];
+            ret
+        })
+    }
+
     #[inline(always)]
     fn ndidx_to_idx(&self, ndidx: &Idx<N>) -> usize {
         let mut res = 0;
@@ -371,6 +397,67 @@ impl Random {
     }
 }
 
+pub struct RandomSamplerBase<const N: usize, R>
+where
+    R: Rng + SeedableRng,
+{
+    pub(crate) random: Random,
+    pub(crate) _rng: PhantomData<R>,
+}
+
+impl<const N: usize, R> Default for RandomSamplerBase<N, R>
+where
+    R: Rng + SeedableRng,
+{
+    fn default() -> Self {
+        RandomSamplerBase {
+            random: Random::new(6),
+            _rng: Default::default(),
+        }
+    }
+}
+
 pub trait HasRandom {
+    fn get_random(&self) -> &Random;
     fn get_random_mut(&mut self) -> &mut Random;
+}
+
+impl<const N: usize, R> HasRandom for RandomSamplerBase<N, R>
+where
+    R: Rng + SeedableRng,
+{
+    fn get_random(&self) -> &Random {
+        &self.random
+    }
+
+    fn get_random_mut(&mut self) -> &mut Random {
+        &mut self.random
+    }
+}
+
+pub struct RandomState<R, T = usize>
+where
+    R: Rng + SeedableRng,
+{
+    pub(crate) active: Vec<T>,
+    pub(crate) rng: R,
+}
+
+impl<R, T> RandomState<R, T>
+where
+    R: Rng + SeedableRng,
+{
+    pub fn new<const N: usize, P>(sampler: &impl HasRandom, _params: &P, grid: &P::Grid) -> Self
+    where
+        P: Params<N>,
+        R: Rng + SeedableRng,
+    {
+        RandomState {
+            active: Vec::with_capacity(grid.cells.len()),
+            rng: match sampler.get_random().seed {
+                None => R::from_os_rng(),
+                Some(seed) => R::seed_from_u64(seed),
+            },
+        }
+    }
 }

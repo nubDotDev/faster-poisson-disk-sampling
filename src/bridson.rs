@@ -1,32 +1,16 @@
 use super::Point;
 use crate::{
     Grid, Params, Sampler,
-    common::{HasRandom, Random},
+    common::{HasRandom, Random, RandomState},
 };
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
 use std::{array, f64::consts::TAU, iter, marker::PhantomData};
 
-struct ActiveSample {
+pub struct ActiveSample {
     idx: usize,
     parent_idx: Option<usize>,
-}
-
-pub struct BridsonState<R>
-where
-    R: Rng + SeedableRng,
-{
-    active: Vec<usize>,
-    rng: R,
-}
-
-pub struct ParentalState<R>
-where
-    R: Rng + SeedableRng,
-{
-    active: Vec<ActiveSample>,
-    rng: R,
 }
 
 pub struct BridsonSamplerBase<const N: usize, R>
@@ -62,6 +46,10 @@ impl<const N: usize, R> HasRandom for BridsonSamplerBase<N, R>
 where
     R: Rng + SeedableRng,
 {
+    fn get_random(&self) -> &Random {
+        &self.random
+    }
+
     fn get_random_mut(&mut self) -> &mut Random {
         &mut self.random
     }
@@ -120,42 +108,24 @@ where
     }
 }
 
-fn new_state<const N: usize, P, R>(
-    sampler: &impl Deref<Target = BridsonSamplerBase<N, R>>,
-    _params: &P,
-    grid: &P::Grid,
-) -> BridsonState<R>
-where
-    P: Params<N>,
-    R: Rng + SeedableRng,
-{
-    BridsonState {
-        active: Vec::with_capacity(grid.cells.len()),
-        rng: match sampler.random.seed {
-            None => R::from_os_rng(),
-            Some(seed) => R::seed_from_u64(seed),
-        },
-    }
-}
-
 impl<R> Sampler<2> for BridsonSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
-    type State = BridsonState<R>;
+    type State = RandomState<R>;
 
     fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
     where
         P: Params<2>,
     {
-        new_state(self, _params, grid)
+        RandomState::new(self.deref(), _params, grid)
     }
 
     fn sample<P>(
         &self,
         params: &P,
         grid: &mut P::Grid,
-        state: &mut BridsonState<R>,
+        state: &mut RandomState<R>,
     ) -> Option<Point<2>>
     where
         P: Params<2>,
@@ -205,20 +175,20 @@ impl<R> Sampler<3> for BridsonSampler3D<R>
 where
     R: Rng + SeedableRng,
 {
-    type State = BridsonState<R>;
+    type State = RandomState<R>;
 
     fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
     where
         P: Params<3>,
     {
-        new_state(self, _params, grid)
+        RandomState::new(self.deref(), _params, grid)
     }
 
     fn sample<P>(
         &self,
         params: &P,
         grid: &mut P::Grid,
-        state: &mut BridsonState<R>,
+        state: &mut RandomState<R>,
     ) -> Option<Point<3>>
     where
         P: Params<3>,
@@ -278,20 +248,20 @@ impl<const N: usize, R> Sampler<N> for BridsonSamplerND<N, R>
 where
     R: Rng + SeedableRng,
 {
-    type State = BridsonState<R>;
+    type State = RandomState<R>;
 
     fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
     where
         P: Params<N>,
     {
-        new_state(self, _params, grid)
+        RandomState::new(self.deref(), _params, grid)
     }
 
     fn sample<P>(
         &self,
         params: &P,
         grid: &mut P::Grid,
-        state: &mut BridsonState<R>,
+        state: &mut RandomState<R>,
     ) -> Option<Point<N>>
     where
         P: Params<N>,
@@ -339,27 +309,16 @@ impl<R> Sampler<2> for ParentalSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
-    type State = ParentalState<R>;
+    type State = RandomState<R, ActiveSample>;
 
     fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
     where
         P: Params<2>,
     {
-        ParentalState {
-            active: Vec::with_capacity(grid.cells.len()),
-            rng: match self.random.seed {
-                None => R::from_os_rng(),
-                Some(seed) => R::seed_from_u64(seed),
-            },
-        }
+        RandomState::new(self.deref(), _params, grid)
     }
 
-    fn sample<P>(
-        &self,
-        params: &P,
-        grid: &mut P::Grid,
-        state: &mut ParentalState<R>,
-    ) -> Option<Point<2>>
+    fn sample<P>(&self, params: &P, grid: &mut P::Grid, state: &mut Self::State) -> Option<Point<2>>
     where
         P: Params<2>,
     {

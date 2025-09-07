@@ -1,6 +1,7 @@
 mod bridson;
 mod common;
 mod dart;
+mod naive;
 mod regular;
 
 #[cfg(feature = "fourier")]
@@ -13,7 +14,7 @@ mod plot;
 #[cfg(feature = "plotly")]
 pub use crate::plot::{plot_2d, plot_3d};
 
-use crate::{bridson::*, common::*, dart::*, regular::*};
+use crate::{bridson::*, common::*, dart::*, naive::*, regular::*};
 use derive_more::with_trait::DerefMut;
 use rand::{Rng, SeedableRng};
 use std::iter;
@@ -58,18 +59,6 @@ where
     }
 }
 
-impl<const N: usize, P, R, S> Poisson<N, P, S>
-where
-    P: Params<N>,
-    R: Rng + SeedableRng,
-    S: Sampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
-{
-    pub fn cdf_exp(mut self, cdf_exp: f64) -> Self {
-        self.sampler.cdf_exp = cdf_exp;
-        self
-    }
-}
-
 impl<const N: usize, P, S> Poisson<N, P, S>
 where
     P: Params<N>,
@@ -86,6 +75,18 @@ where
     }
 }
 
+impl<const N: usize, P, R, S> Poisson<N, P, S>
+where
+    P: Params<N>,
+    R: Rng + SeedableRng,
+    S: Sampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
+{
+    pub fn cdf_exp(mut self, cdf_exp: f64) -> Self {
+        self.sampler.cdf_exp = cdf_exp;
+        self
+    }
+}
+
 pub type Poisson2D = Poisson<2, Params2D, ParentalSampler2D>;
 pub type PoissonBridson2D = Poisson<2, Params2D, BridsonSampler2D>;
 pub type PoissonDart2D = Poisson<2, Params2D, DartSampler2D>;
@@ -94,8 +95,9 @@ pub type Poisson3D = Poisson<3, Params3D, BridsonSampler3D>;
 pub type PoissonDart3D = Poisson<3, Params3D, DartSampler3D>;
 pub type PoissonRegular3D<const N: usize> = Poisson<3, Params3D, RegularSamplerND<3>>;
 pub type PoissonND<const N: usize> = Poisson<N, ParamsND<N>, BridsonSamplerND<N>>;
-pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSamplerND<N>>;
 pub type PoissonDartND<const N: usize> = Poisson<N, ParamsND<N>, DartSamplerND<N>>;
+pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSamplerND<N>>;
+pub type PoissonNaiveND<const N: usize> = Poisson<N, ParamsND<N>, NaiveSamplerND<N>>;
 
 #[cfg(test)]
 mod tests {
@@ -201,6 +203,14 @@ mod tests {
     #[test]
     fn test_regular() {
         let poisson = Poisson::<3, Params3D, RegularSamplerND<3>>::new();
+        len_and_distance(&poisson);
+    }
+
+    #[test]
+    fn test_naive() {
+        let poisson = Poisson::<3, Params3D, NaiveSamplerND<3>>::new()
+            .dims([2.0; 3])
+            .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
 }
