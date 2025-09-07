@@ -1,5 +1,6 @@
 mod bridson;
 mod common;
+mod dart;
 mod regular;
 
 #[cfg(feature = "fourier")]
@@ -12,7 +13,7 @@ mod plot;
 #[cfg(feature = "plotly")]
 pub use crate::plot::{plot_2d, plot_3d};
 
-use crate::{bridson::*, common::*, regular::*};
+use crate::{bridson::*, common::*, dart::*, regular::*};
 use derive_more::with_trait::DerefMut;
 use rand::{Rng, SeedableRng};
 use std::iter;
@@ -38,7 +39,7 @@ where
 
     pub fn iter(&self) -> impl Iterator<Item = Point<N>> {
         let mut grid = self.params.grid();
-        let mut state = S::State::new(&self.sampler, &self.params, &grid);
+        let mut state = self.sampler.new_state(&self.params, &grid);
         iter::from_fn(move || self.sampler.sample(&self.params, &mut grid, &mut state))
     }
 
@@ -79,13 +80,32 @@ where
     }
 }
 
+impl<const N: usize, P, R> Poisson<N, P, DartSamplerND<N, R>>
+where
+    P: Params<N>,
+    R: Rng + SeedableRng,
+{
+    pub fn use_attempts(mut self, attempts: usize) -> Self {
+        self.sampler.attempts = attempts;
+        self
+    }
+
+    pub fn use_seed(mut self, seed: Option<u64>) -> Self {
+        self.sampler.random.seed = seed;
+        self
+    }
+}
+
 pub type Poisson2D = Poisson<2, Params2D, ParentalSampler2D>;
 pub type PoissonBridson2D = Poisson<2, Params2D, BridsonSampler2D>;
-pub type PoissonRegular2D = Poisson<2, Params2D, RegularSampler<2>>;
+pub type PoissonDart2D = Poisson<2, Params2D, DartSamplerND<2>>;
+pub type PoissonRegular2D = Poisson<2, Params2D, RegularSamplerND<2>>;
 pub type Poisson3D = Poisson<3, Params3D, BridsonSampler3D>;
-pub type PoissonRegular3D<const N: usize> = Poisson<3, Params3D, RegularSampler<3>>;
+pub type PoissonDart3D = Poisson<3, Params3D, DartSamplerND<3>>;
+pub type PoissonRegular3D<const N: usize> = Poisson<3, Params3D, RegularSamplerND<3>>;
 pub type PoissonND<const N: usize> = Poisson<N, ParamsND<N>, BridsonSamplerND<N>>;
-pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSampler<N>>;
+pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSamplerND<N>>;
+pub type PoissonDartND<const N: usize> = Poisson<N, ParamsND<N>, DartSamplerND<N>>;
 
 #[cfg(test)]
 mod tests {
@@ -165,8 +185,14 @@ mod tests {
     }
 
     #[test]
+    fn test_dart() {
+        let poisson = Poisson::<3, Params3D, DartSamplerND<3>>::new();
+        len_and_distance(&poisson);
+    }
+
+    #[test]
     fn test_regular() {
-        let poisson = Poisson::<3, Params3D, RegularSampler<3>>::new();
+        let poisson = Poisson::<3, Params3D, RegularSamplerND<3>>::new();
         len_and_distance(&poisson);
     }
 }

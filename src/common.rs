@@ -1,5 +1,6 @@
 use derive_more::with_trait::{Deref, DerefMut};
-use std::{array, f64::consts::SQRT_2};
+use rand::{Rng, SeedableRng};
+use std::{array, f64::consts::SQRT_2, marker::PhantomData};
 
 pub(crate) type Point<const N: usize> = [f64; N];
 pub(crate) type Idx<const N: usize> = [usize; N];
@@ -336,21 +337,16 @@ impl<const N: usize> Params<N> for ParamsND<N> {
     }
 }
 
-pub trait State<const N: usize, S>
-where
-    S: Sampler<N>,
-{
-    fn new<P>(sampler: &S, params: &P, grid: &P::Grid) -> Self
-    where
-        P: Params<N>;
-}
-
 pub trait Sampler<const N: usize>: Default {
-    type State: State<N, Self>;
+    type State;
 
     fn new() -> Self {
         Self::default()
     }
+
+    fn new_state<P>(&self, params: &P, grid: &P::Grid) -> Self::State
+    where
+        P: Params<N>;
 
     fn sample<P>(
         &self,
@@ -360,4 +356,24 @@ pub trait Sampler<const N: usize>: Default {
     ) -> Option<Point<N>>
     where
         P: Params<N>;
+}
+
+pub(crate) struct Random<R>
+where
+    R: Rng + SeedableRng,
+{
+    pub(crate) seed: Option<u64>,
+    _rng: PhantomData<R>,
+}
+
+impl<R> Default for Random<R>
+where
+    R: Rng + SeedableRng,
+{
+    fn default() -> Self {
+        Random {
+            seed: None,
+            _rng: Default::default(),
+        }
+    }
 }

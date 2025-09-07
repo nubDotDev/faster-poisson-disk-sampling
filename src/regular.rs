@@ -1,12 +1,17 @@
-use crate::{Point, Sampler, State};
+use crate::{Point, Sampler, common::Params};
 use std::iter;
 
 pub struct RegularState<const N: usize>(Box<dyn Iterator<Item = Point<N>>>);
 
-impl<const N: usize> State<N, RegularSampler<N>> for RegularState<N> {
-    fn new<P>(_sampler: &RegularSampler<N>, params: &P, _grid: &P::Grid) -> Self
+#[derive(Default)]
+pub struct RegularSamplerND<const N: usize> {}
+
+impl<const N: usize> Sampler<N> for RegularSamplerND<N> {
+    type State = RegularState<N>;
+
+    fn new_state<P>(&self, params: &P, _grid: &P::Grid) -> Self::State
     where
-        P: crate::Params<N>,
+        P: Params<N>,
     {
         let radius = params.radius;
         let hiidx = params.dims.map(|x| (x / params.radius).floor() as usize);
@@ -27,13 +32,6 @@ impl<const N: usize> State<N, RegularSampler<N>> for RegularState<N> {
             },
         ))))
     }
-}
-
-#[derive(Default)]
-pub struct RegularSampler<const N: usize> {}
-
-impl<const N: usize> Sampler<N> for RegularSampler<N> {
-    type State = RegularState<N>;
 
     fn sample<P>(
         &self,

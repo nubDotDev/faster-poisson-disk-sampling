@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use faster_poisson::{Poisson2D, Poisson3D, PoissonBridson2D, PoissonND};
+use faster_poisson::{Poisson2D, Poisson3D, PoissonBridson2D, PoissonDart2D, PoissonND};
 
 fn poisson2d_benchmark(c: &mut Criterion) {
     c.bench_function("2D Parental (5 x 5)", |b| {
@@ -13,6 +13,14 @@ fn poisson2d_benchmark(c: &mut Criterion) {
     c.bench_function("2D Bridson (5 x 5)", |b| {
         b.iter(|| {
             PoissonBridson2D::new()
+                .use_dims([5.0; 2])
+                .use_seed(Some(0xDEADBEEF))
+                .run()
+        })
+    });
+    c.bench_function("2D Dart (5 x 5)", |b| {
+        b.iter(|| {
+            PoissonDart2D::new()
                 .use_dims([5.0; 2])
                 .use_seed(Some(0xDEADBEEF))
                 .run()

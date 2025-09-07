@@ -1,3 +1,5 @@
+// TODO: Take advantage of the periodicity to avoid reflecting.
+
 use crate::Point;
 use image::{GrayImage, Luma};
 use rustfft::{

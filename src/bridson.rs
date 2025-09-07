@@ -1,9 +1,9 @@
 use super::Point;
-use crate::{Grid, Params, Sampler, State};
+use crate::{Grid, Params, Sampler, common::Random};
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
-use std::{array, f64::consts::TAU, iter, marker::PhantomData};
+use std::{array, f64::consts::TAU, iter};
 
 struct ActiveSample {
     idx: usize,
@@ -26,70 +26,13 @@ where
     rng: R,
 }
 
-impl<const N: usize, B, R> State<N, B> for BridsonState<R>
-where
-    B: Sampler<N> + Deref<Target = BridsonSamplerBase<N, R>>,
-    R: Rng + SeedableRng,
-{
-    fn new<P>(sampler: &B, _params: &P, grid: &P::Grid) -> Self
-    where
-        P: Params<N>,
-    {
-        BridsonState {
-            active: Vec::with_capacity(grid.cells.len()),
-            rng: match sampler.random.seed {
-                None => R::from_os_rng(),
-                Some(seed) => R::seed_from_u64(seed),
-            },
-        }
-    }
-}
-
-impl<R> State<2, ParentalSampler2D<R>> for ParentalState<R>
-where
-    R: Rng + SeedableRng,
-{
-    fn new<P>(sampler: &ParentalSampler2D<R>, _params: &P, grid: &P::Grid) -> Self
-    where
-        P: Params<2>,
-    {
-        ParentalState {
-            active: Vec::with_capacity(grid.cells.len()),
-            rng: match sampler.random.seed {
-                None => R::from_os_rng(),
-                Some(seed) => R::seed_from_u64(seed),
-            },
-        }
-    }
-}
-
-pub(crate) struct RandomSampler<R>
-where
-    R: Rng + SeedableRng,
-{
-    pub(crate) seed: Option<u64>,
-    _rng: PhantomData<R>,
-}
-
-impl<R> Default for RandomSampler<R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        RandomSampler {
-            seed: None,
-            _rng: Default::default(),
-        }
-    }
-}
-
 pub struct BridsonSamplerBase<const N: usize, R>
 where
     R: Rng + SeedableRng,
 {
     pub(crate) attempts: usize,
     pub(crate) cdf_exp: f64,
-    pub(crate) random: RandomSampler<R>,
+    pub(crate) random: Random<R>,
 }
 
 #[derive(Deref, DerefMut)]
@@ -120,7 +63,7 @@ where
         BridsonSampler2D(BridsonSamplerBase {
             attempts: 30,
             cdf_exp: 2.0,
-            random: RandomSampler::default(),
+            random: Random::default(),
         })
     }
 }
@@ -133,7 +76,7 @@ where
         BridsonSampler3D(BridsonSamplerBase {
             attempts: 30,
             cdf_exp: 2.0,
-            random: RandomSampler::default(),
+            random: Random::default(),
         })
     }
 }
@@ -146,7 +89,7 @@ where
         BridsonSamplerND(BridsonSamplerBase {
             attempts: 30,
             cdf_exp: 2.0,
-            random: RandomSampler::default(),
+            random: Random::default(),
         })
     }
 }
@@ -159,7 +102,7 @@ where
         ParentalSampler2D(BridsonSamplerBase {
             attempts: 20,
             cdf_exp: 1.0,
-            random: RandomSampler::default(),
+            random: Random::default(),
         })
     }
 }
@@ -169,6 +112,19 @@ where
     R: Rng + SeedableRng,
 {
     type State = BridsonState<R>;
+
+    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
+    where
+        P: Params<2>,
+    {
+        BridsonState {
+            active: Vec::with_capacity(grid.cells.len()),
+            rng: match self.random.seed {
+                None => R::from_os_rng(),
+                Some(seed) => R::seed_from_u64(seed),
+            },
+        }
+    }
 
     fn sample<P>(
         &self,
@@ -225,6 +181,19 @@ where
     R: Rng + SeedableRng,
 {
     type State = BridsonState<R>;
+
+    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
+    where
+        P: Params<3>,
+    {
+        BridsonState {
+            active: Vec::with_capacity(grid.cells.len()),
+            rng: match self.random.seed {
+                None => R::from_os_rng(),
+                Some(seed) => R::seed_from_u64(seed),
+            },
+        }
+    }
 
     fn sample<P>(
         &self,
@@ -292,6 +261,19 @@ where
 {
     type State = BridsonState<R>;
 
+    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
+    where
+        P: Params<N>,
+    {
+        BridsonState {
+            active: Vec::with_capacity(grid.cells.len()),
+            rng: match self.random.seed {
+                None => R::from_os_rng(),
+                Some(seed) => R::seed_from_u64(seed),
+            },
+        }
+    }
+
     fn sample<P>(
         &self,
         params: &P,
@@ -345,6 +327,19 @@ where
     R: Rng + SeedableRng,
 {
     type State = ParentalState<R>;
+
+    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
+    where
+        P: Params<2>,
+    {
+        ParentalState {
+            active: Vec::with_capacity(grid.cells.len()),
+            rng: match self.random.seed {
+                None => R::from_os_rng(),
+                Some(seed) => R::seed_from_u64(seed),
+            },
+        }
+    }
 
     fn sample<P>(
         &self,
