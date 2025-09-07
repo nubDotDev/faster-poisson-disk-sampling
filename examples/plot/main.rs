@@ -1,7 +1,4 @@
-use faster_poisson::{
-    Poisson2D, Poisson3D,
-    plot::{plot_2d, plot_3d},
-};
+use faster_poisson::{Poisson2D, Poisson3D, plot_2d, plot_3d};
 
 fn main() {
     let _ = std::fs::create_dir_all("examples/plot/images");

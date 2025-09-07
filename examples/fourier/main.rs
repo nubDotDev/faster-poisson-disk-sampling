@@ -1,6 +1,4 @@
-use faster_poisson::{
-    Poisson2D, PoissonBridson2D, PoissonRegular2D, fourier::fourier, plot::plot_2d,
-};
+use faster_poisson::{Poisson2D, PoissonBridson2D, PoissonRegular2D, fourier, plot_2d};
 
 fn main() {
     let _ = std::fs::create_dir_all("examples/fourier/images");

@@ -29,11 +29,6 @@ pub fn fourier(
             .min(quad_dims[0] - 1)] = Complex64::one().scale(brightness);
     }
 
-    // for row in quad.iter() {
-    //     println!("{:?}", row);
-    // }
-    // println!("original\n");
-
     let mut planner: FftPlanner<f64> = FftPlanner::new();
     let row_fft = planner.plan_fft_forward(quad_dims[0]);
     let col_fft = planner.plan_fft_forward(quad_dims[1]);
@@ -42,11 +37,6 @@ pub fn fourier(
     for row in quad.iter_mut() {
         row_fft.process(row);
     }
-
-    // for row in quad.iter() {
-    //     println!("{:?}", row);
-    // }
-    // println!("first transform\n");
 
     // Take the transpose and reflect.
     let mut quad_t = vec![vec![Complex64::zero(); quad_dims[1]]; img_dims[0]];
@@ -57,20 +47,10 @@ pub fn fourier(
         }
     }
 
-    // for col in quad_t.iter() {
-    //     println!("{:?}", col);
-    // }
-    // println!("transpose and reflect\n");
-
     // Take the DFTs of the columns.
     for col in quad_t.iter_mut() {
         col_fft.process(col);
     }
-
-    // for col in quad_t.iter() {
-    //     println!("{:?}", col);
-    // }
-    // println!("second transform\n");
 
     // Create the image.
     let scale = 1.0 / ((quad_dims[0] * quad_dims[1]) as f64).sqrt();
