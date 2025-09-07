@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use faster_poisson::{Poisson2D, Poisson3D, PoissonBridson2D, PoissonDart2D, PoissonND};
+use faster_poisson::*;
 
 fn poisson2d_benchmark(c: &mut Criterion) {
     c.bench_function("2D Parental (5 x 5)", |b| {
@@ -21,12 +21,36 @@ fn poisson2d_benchmark(c: &mut Criterion) {
                 .run()
         })
     });
-    c.bench_function("3D (2 x 2 x 2)", |b| {
+    c.bench_function("2D Naive (5 x 5 x 5)", |b| {
+        b.iter(|| {
+            PoissonNaive2D::new()
+                .dims([5.0; 2])
+                .seed(Some(0xDEADBEEF))
+                .run()
+        })
+    });
+    c.bench_function("3D Bridson (2 x 2 x 2)", |b| {
         b.iter(|| Poisson3D::new().dims([2.0; 3]).seed(Some(0xDEADBEEF)).run())
     });
-    c.bench_function("4D (0.5 x 0.5 x 0.5 x 0.5)", |b| {
+    c.bench_function("3D Dart (2 x 2 x 2)", |b| {
+        b.iter(|| {
+            PoissonDart3D::new()
+                .dims([2.0; 3])
+                .seed(Some(0xDEADBEEF))
+                .run()
+        })
+    });
+    c.bench_function("4D Bridson (0.5 x 0.5 x 0.5 x 0.5)", |b| {
         b.iter(|| {
             PoissonND::<4>::new()
+                .dims([0.5; 4])
+                .seed(Some(0xDEADBEEF))
+                .run()
+        })
+    });
+    c.bench_function("4D Dart (0.5 x 0.5 x 0.5 x 0.5)", |b| {
+        b.iter(|| {
+            PoissonDartND::<4>::new()
                 .dims([0.5; 4])
                 .seed(Some(0xDEADBEEF))
                 .run()

@@ -90,14 +90,16 @@ where
 pub type Poisson2D = Poisson<2, Params2D, ParentalSampler2D>;
 pub type PoissonBridson2D = Poisson<2, Params2D, BridsonSampler2D>;
 pub type PoissonDart2D = Poisson<2, Params2D, DartSampler2D>;
+pub type PoissonNaive2D = Poisson<2, Params2D, NaiveSamplerND<2>>;
 pub type PoissonRegular2D = Poisson<2, Params2D, RegularSamplerND<2>>;
 pub type Poisson3D = Poisson<3, Params3D, BridsonSampler3D>;
 pub type PoissonDart3D = Poisson<3, Params3D, DartSampler3D>;
+pub type PoissonNaive3D = Poisson<3, Params3D, NaiveSamplerND<3>>;
 pub type PoissonRegular3D<const N: usize> = Poisson<3, Params3D, RegularSamplerND<3>>;
 pub type PoissonND<const N: usize> = Poisson<N, ParamsND<N>, BridsonSamplerND<N>>;
 pub type PoissonDartND<const N: usize> = Poisson<N, ParamsND<N>, DartSamplerND<N>>;
-pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSamplerND<N>>;
 pub type PoissonNaiveND<const N: usize> = Poisson<N, ParamsND<N>, NaiveSamplerND<N>>;
+pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSamplerND<N>>;
 
 #[cfg(test)]
 mod tests {
