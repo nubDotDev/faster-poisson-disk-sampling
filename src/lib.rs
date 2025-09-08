@@ -22,18 +22,16 @@ use rand::{Rng, SeedableRng};
 use std::iter;
 
 #[derive(Default)]
-pub struct Poisson<const N: usize, P, S>
+pub struct Poisson<const N: usize, S>
 where
-    P: Params<N>,
     S: Sampler<N>,
 {
-    params: P,
+    params: S::Params,
     sampler: S,
 }
 
-impl<const N: usize, P, S> Poisson<N, P, S>
+impl<const N: usize, S> Poisson<N, S>
 where
-    P: Params<N>,
     S: Sampler<N>,
 {
     pub fn new() -> Self {
@@ -61,9 +59,8 @@ where
     }
 }
 
-impl<const N: usize, P, S> Poisson<N, P, S>
+impl<const N: usize, S> Poisson<N, S>
 where
-    P: Params<N>,
     S: Sampler<N> + DerefMut<Target: HasRandom>,
 {
     pub fn attempts(mut self, attempts: usize) -> Self {
@@ -77,9 +74,8 @@ where
     }
 }
 
-impl<const N: usize, P, R, S> Poisson<N, P, S>
+impl<const N: usize, R, S> Poisson<N, S>
 where
-    P: Params<N>,
     R: Rng + SeedableRng,
     S: Sampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
 {
@@ -89,19 +85,19 @@ where
     }
 }
 
-pub type Poisson2D = Poisson<2, Params2D, ParentalSampler2D>;
-pub type PoissonBridson2D = Poisson<2, Params2D, BridsonSampler2D>;
-pub type PoissonDart2D = Poisson<2, Params2D, DartSampler2D>;
-pub type PoissonNaive2D = Poisson<2, Params2D, NaiveSamplerND<2>>;
-pub type PoissonRegular2D = Poisson<2, Params2D, RegularSamplerND<2>>;
-pub type Poisson3D = Poisson<3, Params3D, BridsonSampler3D>;
-pub type PoissonDart3D = Poisson<3, Params3D, DartSampler3D>;
-pub type PoissonNaive3D = Poisson<3, Params3D, NaiveSamplerND<3>>;
-pub type PoissonRegular3D<const N: usize> = Poisson<3, Params3D, RegularSamplerND<3>>;
-pub type PoissonND<const N: usize> = Poisson<N, ParamsND<N>, BridsonSamplerND<N>>;
-pub type PoissonDartND<const N: usize> = Poisson<N, ParamsND<N>, DartSamplerND<N>>;
-pub type PoissonNaiveND<const N: usize> = Poisson<N, ParamsND<N>, NaiveSamplerND<N>>;
-pub type PoissonRegularND<const N: usize> = Poisson<N, ParamsND<N>, RegularSamplerND<N>>;
+pub type Poisson2D = Poisson<2, ParentalSampler2D>;
+pub type PoissonBridson2D = Poisson<2, BridsonSampler2D>;
+pub type PoissonDart2D = Poisson<2, DartSampler2D>;
+pub type PoissonNaive2D = Poisson<2, NaiveSamplerND<2>>;
+pub type PoissonRegular2D = Poisson<2, RegularSamplerND<2>>;
+pub type Poisson3D = Poisson<3, BridsonSampler3D>;
+pub type PoissonDart3D = Poisson<3, DartSampler3D>;
+pub type PoissonNaive3D = Poisson<3, NaiveSamplerND<3>>;
+pub type PoissonRegular3D<const N: usize> = Poisson<3, RegularSamplerND<3>>;
+pub type PoissonND<const N: usize> = Poisson<N, BridsonSamplerND<N>>;
+pub type PoissonDartND<const N: usize> = Poisson<N, DartSamplerND<N>>;
+pub type PoissonNaiveND<const N: usize> = Poisson<N, NaiveSamplerND<N>>;
+pub type PoissonRegularND<const N: usize> = Poisson<N, RegularSamplerND<N>>;
 
 #[cfg(test)]
 mod tests {
@@ -115,9 +111,8 @@ mod tests {
             .sqrt()
     }
 
-    fn len_and_distance<const N: usize, P, S>(poisson: &Poisson<N, P, S>)
+    fn len_and_distance<const N: usize, S>(poisson: &Poisson<N, S>)
     where
-        P: Params<N>,
         S: Sampler<N>,
     {
         let samples = poisson.run();
@@ -150,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_2d_parental() {
-        let poisson = Poisson::<2, Params2D, ParentalSampler2D>::new()
+        let poisson = Poisson::<2, ParentalSampler2D>::new()
             .dims([5.0; 2])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
@@ -158,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_2d_bridson() {
-        let poisson = Poisson::<2, Params2D, BridsonSampler2D>::new()
+        let poisson = Poisson::<2, BridsonSampler2D>::new()
             .dims([5.0; 2])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
@@ -166,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_2d_dart() {
-        let poisson = Poisson::<2, Params2D, DartSampler2D>::new()
+        let poisson = Poisson::<2, DartSampler2D>::new()
             .dims([5.0; 2])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
@@ -174,7 +169,7 @@ mod tests {
 
     #[test]
     fn test_3d() {
-        let poisson = Poisson::<3, Params3D, BridsonSampler3D>::new()
+        let poisson = Poisson::<3, BridsonSampler3D>::new()
             .dims([2.0; 3])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
@@ -182,7 +177,7 @@ mod tests {
 
     #[test]
     fn test_3d_dart() {
-        let poisson = Poisson::<3, Params3D, DartSampler3D>::new()
+        let poisson = Poisson::<3, DartSampler3D>::new()
             .dims([2.0; 3])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
@@ -190,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_4d() {
-        let poisson = Poisson::<4, ParamsND<4>, BridsonSamplerND<4>>::new()
+        let poisson = Poisson::<4, BridsonSamplerND<4>>::new()
             .dims([0.5; 4])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
@@ -198,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_4d_dart() {
-        let poisson = Poisson::<4, ParamsND<4>, DartSamplerND<4>>::new()
+        let poisson = Poisson::<4, DartSamplerND<4>>::new()
             .dims([0.5; 4])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
@@ -206,13 +201,13 @@ mod tests {
 
     #[test]
     fn test_regular() {
-        let poisson = Poisson::<3, Params3D, RegularSamplerND<3>>::new();
+        let poisson = Poisson::<3, RegularSamplerND<3>>::new();
         len_and_distance(&poisson);
     }
 
     #[test]
     fn test_naive() {
-        let poisson = Poisson::<3, Params3D, NaiveSamplerND<3>>::new()
+        let poisson = Poisson::<3, NaiveSamplerND<3>>::new()
             .dims([2.0; 3])
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);

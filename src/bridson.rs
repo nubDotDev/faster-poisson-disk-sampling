@@ -1,7 +1,9 @@
 use super::Point;
 use crate::{
     Grid, Params, Sampler,
-    common::{HasRandom, Random, RandomState},
+    common::{
+        Grid2D, Grid3D, GridND, HasRandom, Params2D, Params3D, ParamsND, Random, RandomState,
+    },
 };
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
@@ -112,24 +114,19 @@ impl<R> Sampler<2> for BridsonSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = Params2D;
     type State = RandomState<R>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: Params<2>,
-    {
+    fn new_state(&self, _params: &Params2D, grid: &Grid2D) -> Self::State {
         RandomState::new(self.deref(), _params, grid)
     }
 
-    fn sample<P>(
+    fn sample(
         &self,
-        params: &P,
-        grid: &mut P::Grid,
+        params: &Params2D,
+        grid: &mut Grid2D,
         state: &mut RandomState<R>,
-    ) -> Option<Point<2>>
-    where
-        P: Params<2>,
-    {
+    ) -> Option<Point<2>> {
         if grid.samples.len() == 0 {
             let p = [
                 state.rng.random_range(0.0..=params.dims[0]),
@@ -175,24 +172,19 @@ impl<R> Sampler<3> for BridsonSampler3D<R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = Params3D;
     type State = RandomState<R>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: Params<3>,
-    {
+    fn new_state(&self, _params: &Params3D, grid: &Grid3D) -> Self::State {
         RandomState::new(self.deref(), _params, grid)
     }
 
-    fn sample<P>(
+    fn sample(
         &self,
-        params: &P,
-        grid: &mut P::Grid,
+        params: &Params3D,
+        grid: &mut Grid3D,
         state: &mut RandomState<R>,
-    ) -> Option<Point<3>>
-    where
-        P: Params<3>,
-    {
+    ) -> Option<Point<3>> {
         if grid.samples.len() == 0 {
             let p = [
                 state.rng.random_range(0.0..=params.dims[0]),
@@ -248,24 +240,19 @@ impl<const N: usize, R> Sampler<N> for BridsonSamplerND<N, R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = ParamsND<N>;
     type State = RandomState<R>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: Params<N>,
-    {
+    fn new_state(&self, _params: &ParamsND<N>, grid: &GridND<N>) -> Self::State {
         RandomState::new(self.deref(), _params, grid)
     }
 
-    fn sample<P>(
+    fn sample(
         &self,
-        params: &P,
-        grid: &mut P::Grid,
+        params: &ParamsND<N>,
+        grid: &mut GridND<N>,
         state: &mut RandomState<R>,
-    ) -> Option<Point<N>>
-    where
-        P: Params<N>,
-    {
+    ) -> Option<Point<N>> {
         if grid.samples.len() == 0 {
             let p = params.dims.map(|x| state.rng.random_range(0.0..=x));
             state.active.push(grid.add_point(&p));
@@ -309,19 +296,19 @@ impl<R> Sampler<2> for ParentalSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = Params2D;
     type State = RandomState<R, ActiveSample>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: Params<2>,
-    {
+    fn new_state(&self, _params: &Params2D, grid: &Grid2D) -> Self::State {
         RandomState::new(self.deref(), _params, grid)
     }
 
-    fn sample<P>(&self, params: &P, grid: &mut P::Grid, state: &mut Self::State) -> Option<Point<2>>
-    where
-        P: Params<2>,
-    {
+    fn sample(
+        &self,
+        params: &Params2D,
+        grid: &mut Grid2D,
+        state: &mut Self::State,
+    ) -> Option<Point<2>> {
         if grid.samples.len() == 0 {
             let p = params.dims.map(|x| state.rng.random_range(0.0..=x));
             state.active.push(ActiveSample {

@@ -363,24 +363,25 @@ impl<const N: usize> Params<N> for ParamsND<N> {
 }
 
 pub trait Sampler<const N: usize>: Default {
+    type Params: Params<N>;
     type State;
 
     fn new() -> Self {
         Self::default()
     }
 
-    fn new_state<P>(&self, params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: Params<N>;
-
-    fn sample<P>(
+    fn new_state(
         &self,
-        params: &P,
-        grid: &mut P::Grid,
+        params: &Self::Params,
+        grid: &<<Self as Sampler<N>>::Params as Params<N>>::Grid,
+    ) -> Self::State;
+
+    fn sample(
+        &self,
+        params: &Self::Params,
+        grid: &mut <<Self as Sampler<N>>::Params as Params<N>>::Grid,
         state: &mut Self::State,
-    ) -> Option<Point<N>>
-    where
-        P: Params<N>;
+    ) -> Option<Point<N>>;
 }
 
 pub struct Random {

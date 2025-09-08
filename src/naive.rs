@@ -1,4 +1,6 @@
-use crate::common::{Grid, Params, Point, Random, RandomSamplerBase, RandomState, Sampler};
+use crate::common::{
+    Grid, GridND, Params, ParamsND, Point, Random, RandomSamplerBase, RandomState, Sampler,
+};
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
@@ -25,21 +27,21 @@ impl<const N: usize, R> Sampler<N> for NaiveSamplerND<N, R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = ParamsND<N>;
     type State = RandomState<R>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: crate::common::Params<N>,
-    {
+    fn new_state(&self, _params: &ParamsND<N>, grid: &GridND<N>) -> Self::State {
         let mut state = RandomState::new(self.deref(), _params, grid);
         state.active.extend(0..grid.cells.len());
         state
     }
 
-    fn sample<P>(&self, params: &P, grid: &mut P::Grid, state: &mut Self::State) -> Option<Point<N>>
-    where
-        P: Params<N>,
-    {
+    fn sample(
+        &self,
+        params: &ParamsND<N>,
+        grid: &mut GridND<N>,
+        state: &mut Self::State,
+    ) -> Option<Point<N>> {
         for _ in 0..self.random.attempts {
             let (active_idx, ndidx, cell_dims) = 'out: loop {
                 let active_idx = state.rng.random_range(0..state.active.len());

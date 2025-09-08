@@ -1,4 +1,7 @@
-use crate::common::{Grid, Idx, Params, RandomSamplerBase, Sampler};
+use crate::common::{
+    Grid, Grid2D, Grid3D, GridND, Idx, Params, Params2D, Params3D, ParamsND, RandomSamplerBase,
+    Sampler,
+};
 use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng, seq::SliceRandom};
 use rand_xoshiro::Xoshiro256StarStar;
@@ -76,24 +79,19 @@ impl<R> Sampler<2> for DartSampler2D<R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = Params2D;
     type State = DartState<R>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: crate::common::Params<2>,
-    {
+    fn new_state(&self, _params: &Params2D, grid: &Grid2D) -> Self::State {
         new_state(self, _params, grid)
     }
 
-    fn sample<P>(
+    fn sample(
         &self,
-        params: &P,
-        grid: &mut P::Grid,
+        params: &Params2D,
+        grid: &mut Grid2D,
         state: &mut Self::State,
-    ) -> Option<crate::common::Point<2>>
-    where
-        P: crate::common::Params<2>,
-    {
+    ) -> Option<crate::common::Point<2>> {
         loop {
             match state.active.pop() {
                 None => return None,
@@ -123,24 +121,19 @@ impl<R> Sampler<3> for DartSampler3D<R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = Params3D;
     type State = DartState<R>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: crate::common::Params<3>,
-    {
+    fn new_state(&self, _params: &Params3D, grid: &Grid3D) -> Self::State {
         new_state(self, _params, grid)
     }
 
-    fn sample<P>(
+    fn sample(
         &self,
-        params: &P,
-        grid: &mut P::Grid,
+        params: &Params3D,
+        grid: &mut Grid3D,
         state: &mut Self::State,
-    ) -> Option<crate::common::Point<3>>
-    where
-        P: crate::common::Params<3>,
-    {
+    ) -> Option<crate::common::Point<3>> {
         loop {
             match state.active.pop() {
                 None => return None,
@@ -172,24 +165,19 @@ impl<const N: usize, R> Sampler<N> for DartSamplerND<N, R>
 where
     R: Rng + SeedableRng,
 {
+    type Params = ParamsND<N>;
     type State = DartState<R>;
 
-    fn new_state<P>(&self, _params: &P, grid: &P::Grid) -> Self::State
-    where
-        P: crate::common::Params<N>,
-    {
+    fn new_state(&self, _params: &ParamsND<N>, grid: &GridND<N>) -> Self::State {
         new_state(self, _params, grid)
     }
 
-    fn sample<P>(
+    fn sample(
         &self,
-        params: &P,
-        grid: &mut P::Grid,
+        params: &ParamsND<N>,
+        grid: &mut GridND<N>,
         state: &mut Self::State,
-    ) -> Option<crate::common::Point<N>>
-    where
-        P: crate::common::Params<N>,
-    {
+    ) -> Option<crate::common::Point<N>> {
         loop {
             match state.active.pop() {
                 None => return None,

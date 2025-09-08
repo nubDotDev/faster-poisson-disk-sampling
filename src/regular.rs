@@ -1,4 +1,7 @@
-use crate::{Point, Sampler, common::Params};
+use crate::{
+    Point, Sampler,
+    common::{GridND, ParamsND},
+};
 use std::iter;
 
 pub struct RegularState<const N: usize>(Box<dyn Iterator<Item = Point<N>>>);
@@ -7,12 +10,10 @@ pub struct RegularState<const N: usize>(Box<dyn Iterator<Item = Point<N>>>);
 pub struct RegularSamplerND<const N: usize> {}
 
 impl<const N: usize> Sampler<N> for RegularSamplerND<N> {
+    type Params = ParamsND<N>;
     type State = RegularState<N>;
 
-    fn new_state<P>(&self, params: &P, _grid: &P::Grid) -> Self::State
-    where
-        P: Params<N>,
-    {
+    fn new_state(&self, params: &ParamsND<N>, _grid: &GridND<N>) -> Self::State {
         let radius = params.radius;
         let hiidx = params.dims.map(|x| (x / params.radius).floor() as usize);
         let mut curr = [0; N];
@@ -33,15 +34,12 @@ impl<const N: usize> Sampler<N> for RegularSamplerND<N> {
         ))))
     }
 
-    fn sample<P>(
+    fn sample(
         &self,
-        _params: &P,
-        _grid: &mut P::Grid,
+        _params: &ParamsND<N>,
+        _grid: &mut GridND<N>,
         state: &mut RegularState<N>,
-    ) -> Option<crate::Point<N>>
-    where
-        P: crate::Params<N>,
-    {
+    ) -> Option<crate::Point<N>> {
         state.0.next()
     }
 }
