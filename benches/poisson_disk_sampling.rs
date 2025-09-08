@@ -2,29 +2,35 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use faster_poisson::*;
 
 fn poisson2d_benchmark(c: &mut Criterion) {
-    c.bench_function("2D Parental (5 x 5)", |b| {
-        b.iter(|| Poisson2D::new().dims([5.0; 2]).seed(Some(0xDEADBEEF)).run())
+    c.bench_function("2D Parental (10 x 10)", |b| {
+        b.iter(|| {
+            Poisson2D::new()
+                .dims([10.0; 2])
+                .seed(Some(0xDEADBEEF))
+                .run()
+        })
     });
-    c.bench_function("2D Bridson (5 x 5)", |b| {
+    c.bench_function("2D Bridson (10 x 10)", |b| {
         b.iter(|| {
             PoissonBridson2D::new()
-                .dims([5.0; 2])
+                .dims([10.0; 2])
                 .seed(Some(0xDEADBEEF))
                 .run()
         })
     });
-    c.bench_function("2D Dart (5 x 5)", |b| {
+    c.bench_function("2D Dart (10 x 10)", |b| {
         b.iter(|| {
             PoissonDart2D::new()
-                .dims([5.0; 2])
+                .dims([10.0; 2])
                 .seed(Some(0xDEADBEEF))
                 .run()
         })
     });
-    c.bench_function("2D Naive (5 x 5 x 5)", |b| {
+    c.bench_function("2D Naive (10 x 10 x 10)", |b| {
         b.iter(|| {
             PoissonNaive2D::new()
-                .dims([5.0; 2])
+                .dims([10.0; 2])
+                .attempts(1000)
                 .seed(Some(0xDEADBEEF))
                 .run()
         })

@@ -1,8 +1,10 @@
-mod bridson;
-mod common;
-mod dart;
-mod naive;
-mod regular;
+#![doc = include_str!("../README.md")]
+
+pub mod bridson;
+pub mod common;
+pub mod dart;
+pub mod naive;
+pub mod regular;
 
 #[cfg(feature = "fourier")]
 mod fourier;

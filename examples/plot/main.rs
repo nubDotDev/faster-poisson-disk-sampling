@@ -3,9 +3,7 @@ use faster_poisson::{Poisson2D, Poisson3D, plot_2d, plot_3d};
 fn main() {
     let _ = std::fs::create_dir_all("examples/plot/images");
 
-    let poisson = Poisson2D::new()
-        .dims([5.0; 2])
-        .seed(Some(0xDEADBEEF));
+    let poisson = Poisson2D::new().dims([5.0; 2]).seed(Some(0xDEADBEEF));
     let samples = poisson.run();
     plot_2d(
         &samples,
