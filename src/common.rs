@@ -174,12 +174,11 @@ impl Params<2> for Params2D {
             (self.dims[0] / cell_len).ceil() as usize,
             (self.dims[1] / cell_len).ceil() as usize,
         ];
-        let grid_len = grid_dims[0] * grid_dims[1];
         Grid2D(GridBase {
             cell_len,
             grid_dims,
-            cells: vec![None; grid_len],
-            samples: Vec::with_capacity(grid_len),
+            cells: vec![None; grid_dims[0] * grid_dims[1]],
+            samples: Vec::new(),
         })
     }
 
@@ -234,12 +233,11 @@ impl Params<3> for Params3D {
             (self.dims[1] / cell_len).ceil() as usize,
             (self.dims[2] / cell_len).ceil() as usize,
         ];
-        let grid_len = grid_dims[0] * grid_dims[1] * grid_dims[2];
         Grid3D(GridBase {
             cell_len,
             grid_dims,
-            cells: vec![None; grid_len],
-            samples: Vec::with_capacity(grid_len),
+            cells: vec![None; grid_dims[0] * grid_dims[1] * grid_dims[2]],
+            samples: Vec::new(),
         })
     }
 
@@ -299,12 +297,11 @@ impl<const N: usize> Params<N> for ParamsND<N> {
     fn grid(&self) -> GridND<N> {
         let cell_len = self.radius / (N as f64).sqrt();
         let grid_dims = self.dims.map(|x| (x / cell_len).ceil() as usize);
-        let grid_len = grid_dims.iter().product();
         GridND(GridBase {
             cell_len,
             grid_dims,
-            cells: vec![None; grid_len],
-            samples: Vec::with_capacity(grid_len),
+            cells: vec![None; grid_dims.iter().product()],
+            samples: Vec::new(),
         })
     }
 
@@ -448,13 +445,13 @@ impl<R, T> RandomState<R, T>
 where
     R: Rng + SeedableRng,
 {
-    pub fn new<const N: usize, P>(sampler: &impl HasRandom, _params: &P, grid: &P::Grid) -> Self
+    pub fn new<const N: usize, P>(sampler: &impl HasRandom, _params: &P, _grid: &P::Grid) -> Self
     where
         P: Params<N>,
         R: Rng + SeedableRng,
     {
         RandomState {
-            active: Vec::with_capacity(grid.cells.len()),
+            active: Vec::new(),
             rng: match sampler.get_random().seed {
                 None => R::from_os_rng(),
                 Some(seed) => R::seed_from_u64(seed),
