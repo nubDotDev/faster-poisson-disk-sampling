@@ -12,9 +12,7 @@ pub struct GridBase<const N: usize> {
     pub(crate) samples: Vec<Point<N>>,
 }
 
-pub trait Grid<const N: usize>:
-    Deref<Target = GridBase<N>> + DerefMut<Target = GridBase<N>>
-{
+pub trait Grid<const N: usize>: DerefMut<Target = GridBase<N>> {
     fn idx_to_ndidx(&self, idx: usize) -> Idx<N>;
     fn ndidx_to_idx(&self, ndidx: &Idx<N>) -> usize;
     fn point_to_ndidx(&self, p: &Point<N>) -> Idx<N>;
@@ -115,27 +113,26 @@ impl<const N: usize> Grid<N> for GridND<N> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct ParamsBase<const N: usize> {
     pub(crate) dims: Point<N>,
     pub(crate) radius: f64,
 }
 
-pub trait Params<const N: usize>:
-    Default + Deref<Target = ParamsBase<N>> + DerefMut<Target = ParamsBase<N>>
-{
+pub trait Params<const N: usize>: Copy + Default + DerefMut<Target = ParamsBase<N>> {
     type Grid: Grid<N>;
 
     fn grid(&self) -> Self::Grid;
     fn is_sample_valid(&self, p: &Point<N>, grid: &Self::Grid) -> bool;
 }
 
-#[derive(Deref, DerefMut)]
+#[derive(Clone, Copy, Deref, DerefMut)]
 pub struct Params2D(ParamsBase<2>);
 
-#[derive(Deref, DerefMut)]
+#[derive(Clone, Copy, Deref, DerefMut)]
 pub struct Params3D(ParamsBase<3>);
 
-#[derive(Deref, DerefMut)]
+#[derive(Clone, Copy, Deref, DerefMut)]
 pub struct ParamsND<const N: usize>(ParamsBase<N>);
 
 impl Default for Params2D {
@@ -183,7 +180,7 @@ impl Params<2> for Params2D {
     }
 
     fn is_sample_valid(&self, p: &Point<2>, grid: &Grid2D) -> bool {
-        if !(0.0..=self.dims[0]).contains(&p[0]) || !(0.0..=self.dims[1]).contains(&p[1]) {
+        if !(0.0..self.dims[0]).contains(&p[0]) || !(0.0..self.dims[1]).contains(&p[1]) {
             return false;
         }
 
@@ -242,9 +239,9 @@ impl Params<3> for Params3D {
     }
 
     fn is_sample_valid(&self, p: &Point<3>, grid: &Grid3D) -> bool {
-        if !(0.0..=self.dims[0]).contains(&p[0])
-            || !(0.0..=self.dims[1]).contains(&p[1])
-            || !(0.0..=self.dims[2]).contains(&p[2])
+        if !(0.0..self.dims[0]).contains(&p[0])
+            || !(0.0..self.dims[1]).contains(&p[1])
+            || !(0.0..self.dims[2]).contains(&p[2])
         {
             return false;
         }
@@ -307,7 +304,7 @@ impl<const N: usize> Params<N> for ParamsND<N> {
 
     fn is_sample_valid(&self, p: &Point<N>, grid: &GridND<N>) -> bool {
         for i in 0..N {
-            if !(0.0..=self.dims[i]).contains(&p[i]) {
+            if !(0.0..self.dims[i]).contains(&p[i]) {
                 return false;
             }
         }

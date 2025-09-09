@@ -36,7 +36,7 @@ fn main() {
                     .dims(dims)
                     .radius(radius)
                     .attempts(attempts)
-                    .cdf_exp(cdf_exp)
+                    .cdf_exp(Some(cdf_exp))
                     .seed(Some(rng.next_u64()))
                     .run()
                     .len() as f64;
@@ -44,7 +44,7 @@ fn main() {
                     .dims(dims)
                     .radius(radius)
                     .attempts(attempts)
-                    .cdf_exp(cdf_exp)
+                    .cdf_exp(Some(cdf_exp))
                     .seed(Some(rng.next_u64()))
                     .run()
                     .len() as f64;

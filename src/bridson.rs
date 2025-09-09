@@ -19,7 +19,7 @@ pub struct BridsonSamplerBase<const N: usize, R>
 where
     R: Rng + SeedableRng,
 {
-    pub(crate) cdf_exp: f64,
+    pub(crate) cdf_exp: Option<f64>,
     pub(crate) random: Random,
     _rng: PhantomData<R>,
 }
@@ -63,8 +63,8 @@ where
 {
     fn default() -> Self {
         BridsonSamplerBase {
-            cdf_exp: 2.0,
-            random: Random::new(30),
+            cdf_exp: None,
+            random: Random::new(16),
             _rng: Default::default(),
         }
     }
@@ -103,8 +103,8 @@ where
 {
     fn default() -> Self {
         ParentalSampler2D(BridsonSamplerBase {
-            cdf_exp: 1.0,
-            random: Random::new(20),
+            cdf_exp: None,
+            random: Random::new(14),
             _rng: Default::default(),
         })
     }
@@ -129,8 +129,8 @@ where
     ) -> Option<Point<2>> {
         if grid.samples.len() == 0 {
             let p = [
-                state.rng.random_range(0.0..=params.dims[0]),
-                state.rng.random_range(0.0..=params.dims[1]),
+                state.rng.random_range(0.0..params.dims[0]),
+                state.rng.random_range(0.0..params.dims[1]),
             ];
             state.active.push(grid.add_point(&p));
             return Some(p);
@@ -141,12 +141,16 @@ where
             let sample_idx = state.active[active_idx];
             let p: &[f64; 2] = &grid.samples[sample_idx];
             let p_opt = iter::from_fn(|| {
-                let s = 2.0
-                    * params.radius
-                    * state
-                        .rng
-                        .random_range(0.5f64.powf(self.cdf_exp)..=1.0)
-                        .powf(1.0 / self.cdf_exp);
+                let s = match self.cdf_exp {
+                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    Some(cdf_exp) => {
+                        2.0 * params.radius
+                            * state
+                                .rng
+                                .random_range(0.5f64.powf(cdf_exp)..=1.0)
+                                .powf(1.0 / cdf_exp)
+                    }
+                };
                 let theta = state.rng.random_range(0.0..TAU);
                 Some([p[0] + s * theta.cos(), p[1] + s * theta.sin()])
             })
@@ -187,9 +191,9 @@ where
     ) -> Option<Point<3>> {
         if grid.samples.len() == 0 {
             let p = [
-                state.rng.random_range(0.0..=params.dims[0]),
-                state.rng.random_range(0.0..=params.dims[1]),
-                state.rng.random_range(0.0..=params.dims[2]),
+                state.rng.random_range(0.0..params.dims[0]),
+                state.rng.random_range(0.0..params.dims[1]),
+                state.rng.random_range(0.0..params.dims[2]),
             ];
             state.active.push(grid.add_point(&p));
             return Some(p);
@@ -200,12 +204,16 @@ where
             let sample_idx = state.active[active_idx];
             let p = &grid.samples[sample_idx];
             let p_opt = iter::from_fn(|| {
-                let s = 2.0
-                    * params.radius
-                    * state
-                        .rng
-                        .random_range(0.5f64.powf(self.cdf_exp)..=1.0)
-                        .powf(1.0 / self.cdf_exp);
+                let s = match self.cdf_exp {
+                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    Some(cdf_exp) => {
+                        2.0 * params.radius
+                            * state
+                                .rng
+                                .random_range(0.5f64.powf(cdf_exp)..=1.0)
+                                .powf(1.0 / cdf_exp)
+                    }
+                };
                 let v: Point<3> = [
                     state.rng.random_range(-1.0..=1.0),
                     state.rng.random_range(-1.0..=1.0),
@@ -254,7 +262,7 @@ where
         state: &mut RandomState<R>,
     ) -> Option<Point<N>> {
         if grid.samples.len() == 0 {
-            let p = params.dims.map(|x| state.rng.random_range(0.0..=x));
+            let p = params.dims.map(|x| state.rng.random_range(0.0..x));
             state.active.push(grid.add_point(&p));
             return Some(p);
         }
@@ -264,12 +272,16 @@ where
             let sample_idx = state.active[active_idx];
             let p = &grid.samples[sample_idx];
             let p_opt = iter::from_fn(|| {
-                let s = 2.0
-                    * params.radius
-                    * state
-                        .rng
-                        .random_range(0.5f64.powf(self.cdf_exp)..=1.0)
-                        .powf(1.0 / self.cdf_exp);
+                let s = match self.cdf_exp {
+                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    Some(cdf_exp) => {
+                        2.0 * params.radius
+                            * state
+                                .rng
+                                .random_range(0.5f64.powf(cdf_exp)..=1.0)
+                                .powf(1.0 / cdf_exp)
+                    }
+                };
                 let v: Point<N> = array::from_fn(|_| state.rng.random_range(-1.0..=1.0));
                 let scale = s / v.iter().map(|x| x * x).sum::<f64>().sqrt();
                 Some(array::from_fn(|i| p[i] + scale * v[i]))
@@ -310,7 +322,10 @@ where
         state: &mut Self::State,
     ) -> Option<Point<2>> {
         if grid.samples.len() == 0 {
-            let p = params.dims.map(|x| state.rng.random_range(0.0..=x));
+            let p = [
+                state.rng.random_range(0.0..=params.dims[0]),
+                state.rng.random_range(0.0..=params.dims[1]),
+            ];
             state.active.push(ActiveSample {
                 idx: grid.add_point(&p),
                 parent_idx: None,
@@ -342,12 +357,16 @@ where
             };
 
             let p_opt = iter::from_fn(|| {
-                let s = 2.0
-                    * params.radius
-                    * state
-                        .rng
-                        .random_range(0.5f64.powf(self.cdf_exp)..=1.0)
-                        .powf(1.0 / self.cdf_exp);
+                let s = match self.cdf_exp {
+                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    Some(cdf_exp) => {
+                        2.0 * params.radius
+                            * state
+                                .rng
+                                .random_range(0.5f64.powf(cdf_exp)..=1.0)
+                                .powf(1.0 / cdf_exp)
+                    }
+                };
                 let theta = state.rng.random_range(theta_range.clone());
                 Some([p[0] + s * theta.cos(), p[1] + s * theta.sin()])
             })

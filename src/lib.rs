@@ -21,6 +21,7 @@ use derive_more::with_trait::DerefMut;
 use rand::{Rng, SeedableRng};
 use std::iter;
 
+/// Generates Poisson disk samples.
 #[derive(Default)]
 pub struct Poisson<const N: usize, S>
 where
@@ -34,25 +35,33 @@ impl<const N: usize, S> Poisson<N, S>
 where
     S: Sampler<N>,
 {
+    /// Creates a new instance with the default parameters (`dims = [1.0; N]`, `radius = 0.1`)
+    /// and sampler settings.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Returns an iterator that lazily generates points.
+    /// Note that this does not consume the instance, so you can reuse it.
     pub fn iter(&self) -> impl Iterator<Item = Point<N>> {
+        let params = self.params;
         let mut grid = self.params.grid();
         let mut state = self.sampler.new_state(&self.params, &grid);
-        iter::from_fn(move || self.sampler.sample(&self.params, &mut grid, &mut state))
+        iter::from_fn(move || self.sampler.sample(&params, &mut grid, &mut state))
     }
 
+    /// Equivalent to `self.iter().collect()`.
     pub fn run(&self) -> Vec<Point<N>> {
         self.iter().collect()
     }
 
+    /// Specify the dimensions of the grid from which to sample points.
     pub fn dims(mut self, dims: Point<N>) -> Self {
         self.params.dims = dims;
         self
     }
 
+    /// Specify the minimum distance between points.
     pub fn radius(mut self, radius: f64) -> Self {
         self.params.radius = radius;
         self
@@ -63,11 +72,16 @@ impl<const N: usize, S> Poisson<N, S>
 where
     S: Sampler<N> + DerefMut<Target: HasRandom>,
 {
+    /// This has slightly different meaning depending on which sampler you use.
+    /// - For `ParentalSampler` and `BridsonSampler`, this is the number of points to try from an annulus centered around a previous sample.
+    /// - For `DartSampler`,  this is the number of points to try from each grid cell of side length `radius / N.sqrt()`.
+    /// - For `NaiveSampler`, this is the number of failed attempts before giving up.
     pub fn attempts(mut self, attempts: usize) -> Self {
         self.sampler.get_random_mut().attempts = attempts;
         self
     }
 
+    /// Specify the seed for the PRNG.
     pub fn seed(mut self, seed: Option<u64>) -> Self {
         self.sampler.get_random_mut().seed = seed;
         self
@@ -79,7 +93,12 @@ where
     R: Rng + SeedableRng,
     S: Sampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
 {
-    pub fn cdf_exp(mut self, cdf_exp: f64) -> Self {
+    /// For `ParentalSampler` and `BridsonSampler`, this specifies the bias toward or away from the center of the annulus.
+    /// Smaller values bias the center and larger values bias the outside.
+    /// Set this to 2 for a uniform distribution.
+    /// The number of points generated tends to increase as this decreases.
+    /// A decreased `attempts` can be coupled with a decreased `cdf_exp` to generate the same number of points with fewer iterations.
+    pub fn cdf_exp(mut self, cdf_exp: Option<f64>) -> Self {
         self.sampler.cdf_exp = cdf_exp;
         self
     }

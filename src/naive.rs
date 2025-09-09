@@ -63,7 +63,7 @@ where
             };
 
             let cand = array::from_fn(|i| {
-                ndidx[i] as f64 * grid.cell_len + state.rng.random_range(0.0..=cell_dims[i])
+                ndidx[i] as f64 * grid.cell_len + state.rng.random_range(0.0..cell_dims[i])
             });
             if params.is_sample_valid(&cand, grid) {
                 grid.add_point(&cand);
