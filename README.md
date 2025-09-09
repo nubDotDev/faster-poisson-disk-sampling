@@ -22,7 +22,7 @@ let poisson_3d = Poisson3D::new();
 let samples_3d = poisson_3d.run();
 
 // For dimensions higher than 3, use PoissonND.
-let poisson_4d = PoissonND::<4>::new().dims([10.0; 4]);
+let poisson_4d = PoissonND::<4>::new();
 // Points are generated lazily, so this is fast.
 let samples_4d_100: Vec<[f64; 4]> = poisson_4d.iter().take(100).collect();
 ```
