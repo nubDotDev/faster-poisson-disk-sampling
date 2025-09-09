@@ -1,3 +1,9 @@
+//! Implements an improved dart throwing algorithm.
+//!
+//! The grid cells are shuffled randomly and a fixed number of attempts are made to place a point in each one.
+//!
+//! `attempts` defaults to 6.
+
 use crate::common::{
     Grid, Grid2D, Grid3D, GridND, Idx, Params, Params2D, Params3D, ParamsND, RandomSamplerBase,
     Sampler,

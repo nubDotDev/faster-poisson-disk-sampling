@@ -2,7 +2,7 @@ use faster_poisson::Poisson2D;
 use std::time::Instant;
 
 fn main() {
-    let dims = [100.0, 100.0];
+    let dims = [125.0, 125.0];
     let radius = 0.1;
     println!(
         "Sampling points from a(n) {} by {} grid with minimum distance {radius}...",

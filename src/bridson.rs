@@ -1,3 +1,24 @@
+//! Improves upon the algorithm from Robert Bridson's
+//! [Fast Poisson Disk Sampling in Arbitrary Dimensions](https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf)
+//!
+//! Instead of uniformly sampling the annulus centered around a previous point,
+//! we bias the center of the annulus.
+//! When uniformly sampling a circle, the CDF of the distance from the center is x<sup>2</sup>.
+//! Here, you can decrease this exponent or even set it to `None`,
+//! representing the limit as the exponent goes to 0.
+//! Restricted to the annulus of inner radius 1/2,
+//! the limiting CDF of the distance from the center is log<sub>2</sub>(x) + 1.
+//!
+//! [`ParentalSampler2D`] makes the additional optimization of
+//! removing the slice of the annulus that is guaranteed to be covered by the parent of the base point
+//! (i.e., the point around which an annulus was sampled to generate the current point).
+//!
+//! `attempts` defaults to 16 in [`BridsonSampler2D`], [`BridsonSampler3D`], and [`BridsonSamplerND`].
+//!
+//! `attempts` defaults to 14 in [`ParentalSampler2D`].
+//!
+//! `cdf_exp` defaults to `None` in all of the above.
+
 use super::Point;
 use crate::{
     Grid, Params, Sampler,

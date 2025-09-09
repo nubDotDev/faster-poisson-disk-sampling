@@ -1,3 +1,5 @@
+//! Generates a regular grid of points with exactly `radius` between each of them.
+
 use crate::{
     Point, Sampler,
     common::{GridND, ParamsND},

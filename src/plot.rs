@@ -5,6 +5,15 @@ use plotly::{
     layout::{Axis, LayoutScene},
 };
 
+/// Plots 2D `samples` on a grid of pixel dimensions `dims` as an HTML file at `path`.
+///
+/// ### Example
+/// ```
+/// use faster_poisson::{Poisson2D, plot_2d};
+///
+/// let samples = Poisson2D::new().run();
+/// plot_2d(&samples, [1000, 1000], String::from("plot_2d.html"));
+/// ```
 pub fn plot_2d(samples: &Vec<Point<2>>, dims: [usize; 2], path: String) {
     let (x, y): (Vec<_>, Vec<_>) = samples.clone().into_iter().map(|[x, y]| (x, y)).unzip();
 
@@ -22,6 +31,15 @@ pub fn plot_2d(samples: &Vec<Point<2>>, dims: [usize; 2], path: String) {
     plot.write_html(path);
 }
 
+/// Plots 3D `samples` on a grid of pixel dimensions `dims` as an HTML file at `path`.
+///
+/// ### Example
+/// ```
+/// use faster_poisson::{Poisson3D, plot_3d};
+///
+/// let samples = Poisson3D::new().run();
+/// plot_3d(&samples, [1000, 1000], String::from("plot_3d.html"));
+/// ```
 pub fn plot_3d(samples: &Vec<Point<3>>, dims: [usize; 2], path: String) {
     let (x, y, z): (Vec<_>, Vec<_>, Vec<_>) =
         samples.clone().into_iter().map(|[a, b, c]| (a, b, c)).fold(

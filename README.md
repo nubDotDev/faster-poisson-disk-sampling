@@ -11,7 +11,7 @@ You can generate points all at once with the `run` method, or lazily with the `i
 To change parameters like the grid dimensions or minimum distance, [`Poisson`] uses a fluent interface pattern.
 
 ```rust
-use faster_poisson::{Poisson2D, Poisson3D, PoissonND}
+use faster_poisson::{Poisson2D, Poisson3D, PoissonND};
 
 // Sample points from a 6 x 4 grid with minimum distance 0.5.
 let poisson_2d = Poisson2D::new().dims([6.0, 4.0]).radius(0.5);
@@ -22,12 +22,12 @@ let poisson_3d = Poisson3D::new();
 let samples_3d = poisson_3d.run();
 
 // For dimensions higher than 3, use PoissonND.
-let poisson_4d = PoissonND::<4>::new().dims([1000.0; 4]);
+let poisson_4d = PoissonND::<4>::new().dims([10.0; 4]);
 // Points are generated lazily, so this is fast.
-let samples_4d_100 = poisson_4d.iter().take(100).collect();
+let samples_4d_100: Vec<[f64; 4]> = poisson_4d.iter().take(100).collect();
 ```
 
-For small, 2D grids it might be faster to use [`PoissonDart2D`].
+For smaller 2D grids (< 1,000,000 points) it is probably faster to use [`PoissonDart2D`].
 
 ## Features
 

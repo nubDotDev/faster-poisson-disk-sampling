@@ -94,10 +94,11 @@ where
     S: Sampler<N> + DerefMut<Target = BridsonSamplerBase<N, R>>,
 {
     /// For `ParentalSampler` and `BridsonSampler`, this specifies the bias toward or away from the center of the annulus.
-    /// Smaller values bias the center and larger values bias the outside.
+    /// `None` and smaller values bias the center and larger values bias the outside.
     /// Set this to 2 for a uniform distribution.
-    /// The number of points generated tends to increase as this decreases.
-    /// A decreased `attempts` can be coupled with a decreased `cdf_exp` to generate the same number of points with fewer iterations.
+    /// Non-`None` values must be positive.
+    /// The number of points generated tends to increase as this decreases,
+    /// with the most points being achieved by `None` (effectively the limit as `cdf_exp` goes to 0).
     pub fn cdf_exp(mut self, cdf_exp: Option<f64>) -> Self {
         self.sampler.cdf_exp = cdf_exp;
         self

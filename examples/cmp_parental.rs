@@ -13,7 +13,7 @@ fn main() {
     let n = 100;
     let num_attempts = (18..=30).step_by(3);
     let cdf_exps = [0.5, 1.0, 2.0];
-    let dims = [6.0, 6.0];
+    let dims = [5.0; 2];
     let radius = 0.1;
 
     let nf64 = n as f64;

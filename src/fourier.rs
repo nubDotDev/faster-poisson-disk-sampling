@@ -6,6 +6,17 @@ use rustfft::{
     num_traits::{One, Zero},
 };
 
+/// Computes the 2D DFT of `samples` taken from a grid of dimensions `dims`
+/// and generates a periodogram of size with `pixels_per_unit * dims` as a PNG at `path`.
+/// `brightness` should increase with `pixels_per_unit`.
+///
+/// ### Example
+/// ```
+/// use faster_poisson::{Poisson2D, fourier};
+///
+/// let samples = Poisson2D::new().dims([10.0; 2]).run();
+/// fourier(&samples, [10.0; 2], 100, 3.0, String::from("periodogram.png"));
+/// ```
 pub fn fourier(
     samples: &Vec<Point<2>>,
     dims: [f64; 2],

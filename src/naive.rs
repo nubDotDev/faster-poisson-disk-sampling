@@ -1,3 +1,11 @@
+//! Implements a slightly optimized naive dart throwing algorithm.
+//!
+//! We divide the grid into cells of length radius/sqrt(N)
+//! and mark each cell as inactive when a point is placed inside it.
+//! The algorithm only tries to place points in active cells.
+//! The resulting distribution is equivalent to true naive dart throwing.
+//! This algorithm is very slow and should not be used in production.
+
 use crate::common::{
     Grid, GridND, Params, ParamsND, Point, Random, RandomSamplerBase, RandomState, Sampler,
 };

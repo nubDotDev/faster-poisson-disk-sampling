@@ -1,7 +1,14 @@
 [package]
 name = "faster_poisson"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
+authors = ["Justin Steinman"]
+description = "Fast Poisson disk sampling"
+readme = "README.md"
+repository = "https://github.com/nubDotDev/faster-poisson-disk-sampling/"
+license = "MIT"
+keywords = ["poisson-disk", "sampling", "distribution", "bridson", "blue-noise"]
+categories = ["algorithms", "graphics", "mathematics"]
 
 [dependencies]
 derive_more = { version = "2.0.1", features = ["deref", "deref_mut"] }
