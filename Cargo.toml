@@ -27,3 +27,11 @@ fourier = ["dep:image", "dep:rustfft"]
 [[bench]]
 name = "poisson_disk_sampling"
 harness = false
+
+[[example]]
+name = "fourier"
+required-features = ["fourier", "plotly"]
+
+[[example]]
+name = "plot"
+required-features = ["plotly"]
