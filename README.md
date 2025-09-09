@@ -38,3 +38,5 @@ For smaller 2D grids (< 1,000,000 points) it is probably faster to use [`Poisson
 - `fourier`
 
     Use the [image](https://docs.rs/image/latest/image/) and [rustfft](https://docs.rs/rustfft/latest/rustfft/) libraries to generate 2D periodograms of distributions with [`fourier`].
+
+    <img src="https://raw.githubusercontent.com/nubDotDev/faster-poisson-disk-sampling/refs/heads/main/assets/parental_fourier.png" width=250 style="border: 2px solid white;"/>

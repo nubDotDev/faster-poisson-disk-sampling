@@ -10,8 +10,8 @@
 //! the limiting CDF of the distance from the center is log<sub>2</sub>(x) + 1.
 //!
 //! [`ParentalSampler2D`] makes the additional optimization of
-//! removing the slice of the annulus that is guaranteed to be covered by the parent of the base point
-//! (i.e., the point around which an annulus was sampled to generate the current point).
+//! removing the slice of the annulus that is too close to the parent of the base point
+//! (i.e., the point around which an annulus was sampled to generate the base point).
 //!
 //! `attempts` defaults to 16 in [`BridsonSampler2D`], [`BridsonSampler3D`], and [`BridsonSamplerND`].
 //!
