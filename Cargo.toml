@@ -10,6 +10,9 @@ license = "MIT"
 keywords = ["poisson-disk", "sampling", "distribution", "bridson", "blue-noise"]
 categories = ["algorithms", "graphics", "mathematics"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 derive_more = { version = "2.0.1", features = ["deref", "deref_mut"] }
 image = { version = "0.25.8", optional = true }
