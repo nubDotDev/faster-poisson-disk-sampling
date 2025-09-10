@@ -1,3 +1,7 @@
+[![Crates.io](https://img.shields.io/crates/v/faster_poisson.svg)](https://crates.io/crates/faster_poisson)
+[![Docs](https://docs.rs/faster_poisson/badge.svg)](https://docs.rs/faster_poisson/)
+[![CI](https://github.com/nubDotDev/faster-poisson-disk-sampling/actions/workflows/rust.yml/badge.svg)](https://github.com/nubDotDev/faster-poisson-disk-sampling/actions/workflows/rust.yml)
+
 # faster_poisson
 
 This is a library that implements various methods of Poisson disk sampling.
