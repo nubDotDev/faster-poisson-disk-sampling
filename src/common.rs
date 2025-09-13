@@ -117,6 +117,7 @@ impl<const N: usize> Grid<N> for GridND<N> {
 pub struct ParamsBase<const N: usize> {
     pub(crate) dims: Point<N>,
     pub(crate) radius: f64,
+    pub(crate) radius_fn: Option<fn(&Point<N>) -> f64>,
 }
 
 pub trait Params<const N: usize>: Copy + Default + DerefMut<Target = ParamsBase<N>> {
@@ -140,6 +141,7 @@ impl Default for Params2D {
         Params2D(ParamsBase {
             dims: [1.0, 1.0],
             radius: 0.1,
+            radius_fn: None,
         })
     }
 }
@@ -149,6 +151,7 @@ impl Default for Params3D {
         Params3D(ParamsBase {
             dims: [1.0, 1.0, 1.0],
             radius: 0.1,
+            radius_fn: None,
         })
     }
 }
@@ -158,6 +161,7 @@ impl<const N: usize> Default for ParamsND<N> {
         ParamsND(ParamsBase {
             dims: [1.0; N],
             radius: 0.1,
+            radius_fn: None,
         })
     }
 }
@@ -310,8 +314,14 @@ impl<const N: usize> Params<N> for ParamsND<N> {
         }
 
         let ndidx = grid.point_to_ndidx(p);
-        let radius_quo = N.isqrt();
-        let radius_rem = (N as f64).sqrt().fract();
+        let (radius, radius_quo, radius_rem) = match self.radius_fn {
+            None => (self.radius, N.isqrt(), (N as f64).sqrt().fract()),
+            Some(radius_fn) => {
+                let radius = radius_fn(p);
+                let quo = radius / grid.cell_len;
+                (radius, quo.floor() as usize, quo.fract())
+            }
+        };
         let p_rems = p.map(|x| (x / grid.cell_len).fract());
         let loidx: [usize; N] = array::from_fn(|i| {
             ndidx[i].saturating_sub(radius_quo + ((p_rems[i] <= radius_rem) as usize))
@@ -332,7 +342,7 @@ impl<const N: usize> Params<N> for ParamsND<N> {
                         let d = sample[i] - p[i];
                         dist_sq += d * d;
                     }
-                    if dist_sq < self.radius * self.radius {
+                    if dist_sq < radius * radius {
                         return false;
                     }
                 }

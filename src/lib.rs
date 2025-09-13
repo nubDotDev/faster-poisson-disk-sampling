@@ -66,6 +66,12 @@ where
         self.params.radius = radius;
         self
     }
+
+    /// Specify a function to set the minimum distance between points dynamically.
+    pub fn radius_fn(mut self, radius_fn: Option<fn(&Point<N>) -> f64>) -> Self {
+        self.params.radius_fn = radius_fn;
+        self
+    }
 }
 
 impl<const N: usize, S> Poisson<N, S>
