@@ -2,17 +2,16 @@
 
 use crate::{
     Point, Sampler,
-    common::{GridND, ParamsND},
+    common::{GridND, ND, ParamsND},
 };
 use std::iter;
 
 pub struct RegularState<const N: usize>(Box<dyn Iterator<Item = Point<N>>>);
 
 #[derive(Default)]
-pub struct RegularSamplerND<const N: usize> {}
+pub struct RegularSampler<const N: usize> {}
 
-impl<const N: usize> Sampler<N> for RegularSamplerND<N> {
-    type Params = ParamsND<N>;
+impl<const N: usize> Sampler<N, ND> for RegularSampler<N> {
     type State = RegularState<N>;
 
     fn new_state(&self, params: &ParamsND<N>, _grid: &GridND<N>) -> Self::State {

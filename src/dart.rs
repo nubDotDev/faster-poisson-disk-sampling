@@ -5,71 +5,18 @@
 //! `attempts` defaults to 6.
 
 use crate::common::{
-    Grid, Grid2D, Grid3D, GridND, Idx, Params, Params2D, Params3D, ParamsND, RandomSamplerBase,
-    Sampler,
+    Grid, Grid2D, Grid3D, GridImpl, GridND, Idx, ND, Params2D, Params3D, ParamsImpl, ParamsND,
+    RandomSampler, RandomSpec, RandomState, Sampler, ThreeD, TwoD,
 };
-use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng, seq::SliceRandom};
 use rand_xoshiro::Xoshiro256StarStar;
 use std::array;
 
-pub struct DartState<R>
+fn new_state<const N: usize, R, T>(
+    sampler: &RandomSampler<R, Dart>,
+    grid: &Grid<N, T>,
+) -> RandomState<R>
 where
-    R: Rng + SeedableRng,
-{
-    active: Vec<usize>,
-    rng: R,
-}
-
-#[derive(Deref, DerefMut)]
-pub struct DartSampler2D<R = Xoshiro256StarStar>(RandomSamplerBase<2, R>)
-where
-    R: Rng + SeedableRng;
-
-#[derive(Deref, DerefMut)]
-pub struct DartSampler3D<R = Xoshiro256StarStar>(RandomSamplerBase<3, R>)
-where
-    R: Rng + SeedableRng;
-
-#[derive(Deref, DerefMut)]
-pub struct DartSamplerND<const N: usize, R = Xoshiro256StarStar>(RandomSamplerBase<N, R>)
-where
-    R: Rng + SeedableRng;
-
-impl<R> Default for DartSampler2D<R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        DartSampler2D(RandomSamplerBase::default())
-    }
-}
-
-impl<R> Default for DartSampler3D<R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        DartSampler3D(RandomSamplerBase::default())
-    }
-}
-
-impl<const N: usize, R> Default for DartSamplerND<N, R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        DartSamplerND(RandomSamplerBase::default())
-    }
-}
-
-fn new_state<const N: usize, P, R>(
-    sampler: &impl Deref<Target = RandomSamplerBase<N, R>>,
-    _params: &P,
-    grid: &P::Grid,
-) -> DartState<R>
-where
-    P: Params<N>,
     R: Rng + SeedableRng,
 {
     let mut rng = match sampler.random.seed {
@@ -78,18 +25,34 @@ where
     };
     let mut active: Vec<usize> = (0..grid.cells.len()).collect();
     active.shuffle(&mut rng);
-    DartState { active, rng }
+    RandomState { active, rng }
 }
 
-impl<R> Sampler<2> for DartSampler2D<R>
+pub struct Dart;
+
+pub type DartSampler<R = Xoshiro256StarStar> = RandomSampler<R, Dart>;
+
+impl<R> Default for RandomSampler<R, Dart>
 where
     R: Rng + SeedableRng,
 {
-    type Params = Params2D;
-    type State = DartState<R>;
+    fn default() -> Self {
+        RandomSampler {
+            random: RandomSpec::new(6),
+            _rng: Default::default(),
+            _t: Default::default(),
+        }
+    }
+}
+
+impl<R> Sampler<2, TwoD> for DartSampler<R>
+where
+    R: Rng + SeedableRng,
+{
+    type State = RandomState<R>;
 
     fn new_state(&self, _params: &Params2D, grid: &Grid2D) -> Self::State {
-        new_state(self, _params, grid)
+        new_state(self, grid)
     }
 
     fn sample(
@@ -123,15 +86,14 @@ where
     }
 }
 
-impl<R> Sampler<3> for DartSampler3D<R>
+impl<R> Sampler<3, ThreeD> for DartSampler<R>
 where
     R: Rng + SeedableRng,
 {
-    type Params = Params3D;
-    type State = DartState<R>;
+    type State = RandomState<R>;
 
     fn new_state(&self, _params: &Params3D, grid: &Grid3D) -> Self::State {
-        new_state(self, _params, grid)
+        new_state(self, grid)
     }
 
     fn sample(
@@ -167,15 +129,14 @@ where
     }
 }
 
-impl<const N: usize, R> Sampler<N> for DartSamplerND<N, R>
+impl<const N: usize, R> Sampler<N, ND> for DartSampler<R>
 where
     R: Rng + SeedableRng,
 {
-    type Params = ParamsND<N>;
-    type State = DartState<R>;
+    type State = RandomState<R>;
 
     fn new_state(&self, _params: &ParamsND<N>, grid: &GridND<N>) -> Self::State {
-        new_state(self, _params, grid)
+        new_state(self, grid)
     }
 
     fn sample(

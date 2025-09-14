@@ -1,28 +1,44 @@
-use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use std::{array, f64::consts::SQRT_2, marker::PhantomData};
 
 pub(crate) type Point<const N: usize> = [f64; N];
 pub(crate) type Idx<const N: usize> = [usize; N];
 
-pub struct GridBase<const N: usize> {
+#[derive(Default, Clone, Copy)]
+pub struct TwoD;
+#[derive(Default, Clone, Copy)]
+pub struct ThreeD;
+#[derive(Default, Clone, Copy)]
+pub struct ND;
+
+pub struct Grid<const N: usize, T> {
     pub(crate) cell_len: f64,
     pub(crate) grid_dims: Idx<N>,
     pub(crate) cells: Vec<Option<usize>>,
     pub(crate) samples: Vec<Point<N>>,
+    _t: PhantomData<T>,
 }
 
-pub trait Grid<const N: usize>: DerefMut<Target = GridBase<N>> {
+pub type Grid2D = Grid<2, TwoD>;
+pub type Grid3D = Grid<3, ThreeD>;
+pub type GridND<const N: usize> = Grid<N, ND>;
+
+pub trait GridImpl<const N: usize> {
     fn idx_to_ndidx(&self, idx: usize) -> Idx<N>;
     fn ndidx_to_idx(&self, ndidx: &Idx<N>) -> usize;
     fn point_to_ndidx(&self, p: &Point<N>) -> Idx<N>;
+}
 
+impl<const N: usize, T> Grid<N, T>
+where
+    Self: GridImpl<N>,
+{
     #[inline(always)]
-    fn point_to_idx(&self, p: &Point<N>) -> usize {
+    pub fn point_to_idx(&self, p: &Point<N>) -> usize {
         self.ndidx_to_idx(&self.point_to_ndidx(p))
     }
 
-    fn add_point(&mut self, p: &Point<N>) -> usize {
+    pub fn add_point(&mut self, p: &Point<N>) -> usize {
         let grid_idx = self.point_to_idx(p);
         let sample_idx = self.samples.len();
         self.cells[grid_idx] = Some(sample_idx);
@@ -31,16 +47,7 @@ pub trait Grid<const N: usize>: DerefMut<Target = GridBase<N>> {
     }
 }
 
-#[derive(Deref, DerefMut)]
-pub struct Grid2D(GridBase<2>);
-
-#[derive(Deref, DerefMut)]
-pub struct Grid3D(GridBase<3>);
-
-#[derive(Deref, DerefMut)]
-pub struct GridND<const N: usize>(GridBase<N>);
-
-impl Grid<2> for Grid2D {
+impl GridImpl<2> for Grid2D {
     #[inline(always)]
     fn idx_to_ndidx(&self, idx: usize) -> Idx<2> {
         [idx % self.grid_dims[0], idx / self.grid_dims[0]]
@@ -60,7 +67,7 @@ impl Grid<2> for Grid2D {
     }
 }
 
-impl Grid<3> for Grid3D {
+impl GridImpl<3> for Grid3D {
     #[inline(always)]
     fn idx_to_ndidx(&self, idx: usize) -> Idx<3> {
         [
@@ -85,7 +92,7 @@ impl Grid<3> for Grid3D {
     }
 }
 
-impl<const N: usize> Grid<N> for GridND<N> {
+impl<const N: usize> GridImpl<N> for GridND<N> {
     #[inline(always)]
     fn idx_to_ndidx(&self, idx: usize) -> Idx<N> {
         let mut idx = idx;
@@ -114,73 +121,45 @@ impl<const N: usize> Grid<N> for GridND<N> {
 }
 
 #[derive(Clone, Copy)]
-pub struct ParamsBase<const N: usize> {
+pub struct Params<const N: usize, T> {
     pub(crate) dims: Point<N>,
     pub(crate) radius: f64,
-    pub(crate) radius_fn: Option<fn(&Point<N>) -> f64>,
+    _t: PhantomData<T>,
 }
 
-pub trait Params<const N: usize>: Copy + Default + DerefMut<Target = ParamsBase<N>> {
-    type Grid: Grid<N>;
+pub(crate) type Params2D = Params<2, TwoD>;
+pub(crate) type Params3D = Params<3, ThreeD>;
+pub(crate) type ParamsND<const N: usize> = Params<N, ND>;
 
-    fn grid(&self) -> Self::Grid;
-    fn is_sample_valid(&self, p: &Point<N>, grid: &Self::Grid) -> bool;
+pub trait ParamsImpl<const N: usize, T> {
+    fn grid(&self) -> Grid<N, T>;
+    fn is_sample_valid(&self, p: &Point<N>, grid: &Grid<N, T>) -> bool;
 }
 
-#[derive(Clone, Copy, Deref, DerefMut)]
-pub struct Params2D(ParamsBase<2>);
-
-#[derive(Clone, Copy, Deref, DerefMut)]
-pub struct Params3D(ParamsBase<3>);
-
-#[derive(Clone, Copy, Deref, DerefMut)]
-pub struct ParamsND<const N: usize>(ParamsBase<N>);
-
-impl Default for Params2D {
+impl<const N: usize, T> Default for Params<N, T> {
     fn default() -> Self {
-        Params2D(ParamsBase {
-            dims: [1.0, 1.0],
-            radius: 0.1,
-            radius_fn: None,
-        })
-    }
-}
-
-impl Default for Params3D {
-    fn default() -> Self {
-        Params3D(ParamsBase {
-            dims: [1.0, 1.0, 1.0],
-            radius: 0.1,
-            radius_fn: None,
-        })
-    }
-}
-
-impl<const N: usize> Default for ParamsND<N> {
-    fn default() -> Self {
-        ParamsND(ParamsBase {
+        Params {
             dims: [1.0; N],
             radius: 0.1,
-            radius_fn: None,
-        })
+            _t: Default::default(),
+        }
     }
 }
 
-impl Params<2> for Params2D {
-    type Grid = Grid2D;
-
+impl ParamsImpl<2, TwoD> for Params2D {
     fn grid(&self) -> Grid2D {
         let cell_len = self.radius / SQRT_2;
         let grid_dims = [
             (self.dims[0] / cell_len).ceil() as usize,
             (self.dims[1] / cell_len).ceil() as usize,
         ];
-        Grid2D(GridBase {
+        Grid2D {
             cell_len,
             grid_dims,
             cells: vec![None; grid_dims[0] * grid_dims[1]],
             samples: Vec::new(),
-        })
+            _t: Default::default(),
+        }
     }
 
     fn is_sample_valid(&self, p: &Point<2>, grid: &Grid2D) -> bool {
@@ -224,9 +203,7 @@ impl Params<2> for Params2D {
     }
 }
 
-impl Params<3> for Params3D {
-    type Grid = Grid3D;
-
+impl ParamsImpl<3, ThreeD> for Params3D {
     fn grid(&self) -> Grid3D {
         let cell_len = self.radius / 3.0f64.sqrt();
         let grid_dims = [
@@ -234,12 +211,13 @@ impl Params<3> for Params3D {
             (self.dims[1] / cell_len).ceil() as usize,
             (self.dims[2] / cell_len).ceil() as usize,
         ];
-        Grid3D(GridBase {
+        Grid3D {
             cell_len,
             grid_dims,
             cells: vec![None; grid_dims[0] * grid_dims[1] * grid_dims[2]],
             samples: Vec::new(),
-        })
+            _t: Default::default(),
+        }
     }
 
     fn is_sample_valid(&self, p: &Point<3>, grid: &Grid3D) -> bool {
@@ -292,18 +270,17 @@ impl Params<3> for Params3D {
     }
 }
 
-impl<const N: usize> Params<N> for ParamsND<N> {
-    type Grid = GridND<N>;
-
+impl<const N: usize> ParamsImpl<N, ND> for ParamsND<N> {
     fn grid(&self) -> GridND<N> {
         let cell_len = self.radius / (N as f64).sqrt();
         let grid_dims = self.dims.map(|x| (x / cell_len).ceil() as usize);
-        GridND(GridBase {
+        GridND {
             cell_len,
             grid_dims,
             cells: vec![None; grid_dims.iter().product()],
             samples: Vec::new(),
-        })
+            _t: Default::default(),
+        }
     }
 
     fn is_sample_valid(&self, p: &Point<N>, grid: &GridND<N>) -> bool {
@@ -314,14 +291,8 @@ impl<const N: usize> Params<N> for ParamsND<N> {
         }
 
         let ndidx = grid.point_to_ndidx(p);
-        let (radius, radius_quo, radius_rem) = match self.radius_fn {
-            None => (self.radius, N.isqrt(), (N as f64).sqrt().fract()),
-            Some(radius_fn) => {
-                let radius = radius_fn(p);
-                let quo = radius / grid.cell_len;
-                (radius, quo.floor() as usize, quo.fract())
-            }
-        };
+        let radius_quo = N.isqrt();
+        let radius_rem = (N as f64).sqrt().fract();
         let p_rems = p.map(|x| (x / grid.cell_len).fract());
         let loidx: [usize; N] = array::from_fn(|i| {
             ndidx[i].saturating_sub(radius_quo + ((p_rems[i] <= radius_rem) as usize))
@@ -342,7 +313,7 @@ impl<const N: usize> Params<N> for ParamsND<N> {
                         let d = sample[i] - p[i];
                         dist_sq += d * d;
                     }
-                    if dist_sq < radius * radius {
+                    if dist_sq < self.radius * self.radius {
                         return false;
                     }
                 }
@@ -366,76 +337,56 @@ impl<const N: usize> Params<N> for ParamsND<N> {
     }
 }
 
-pub trait Sampler<const N: usize>: Default {
-    type Params: Params<N>;
+pub trait Sampler<const N: usize, T>: Default {
     type State;
 
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn new_state(
-        &self,
-        params: &Self::Params,
-        grid: &<<Self as Sampler<N>>::Params as Params<N>>::Grid,
-    ) -> Self::State;
+    fn new_state(&self, params: &Params<N, T>, grid: &Grid<N, T>) -> Self::State;
 
     fn sample(
         &self,
-        params: &Self::Params,
-        grid: &mut <<Self as Sampler<N>>::Params as Params<N>>::Grid,
+        params: &Params<N, T>,
+        grid: &mut Grid<N, T>,
         state: &mut Self::State,
     ) -> Option<Point<N>>;
 }
 
-pub struct Random {
+pub struct RandomSpec {
     pub(crate) attempts: usize,
     pub(crate) seed: Option<u64>,
 }
 
-impl Random {
+impl RandomSpec {
     pub(crate) fn new(attempts: usize) -> Self {
-        Random {
+        RandomSpec {
             attempts,
             seed: None,
         }
     }
 }
 
-pub struct RandomSamplerBase<const N: usize, R>
+pub struct RandomSampler<R, T>
 where
     R: Rng + SeedableRng,
 {
-    pub(crate) random: Random,
+    pub(crate) random: RandomSpec,
     pub(crate) _rng: PhantomData<R>,
-}
-
-impl<const N: usize, R> Default for RandomSamplerBase<N, R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        RandomSamplerBase {
-            random: Random::new(6),
-            _rng: Default::default(),
-        }
-    }
+    pub(crate) _t: PhantomData<T>,
 }
 
 pub trait HasRandom {
-    fn get_random(&self) -> &Random;
-    fn get_random_mut(&mut self) -> &mut Random;
+    fn get_random(&self) -> &RandomSpec;
+    fn get_random_mut(&mut self) -> &mut RandomSpec;
 }
 
-impl<const N: usize, R> HasRandom for RandomSamplerBase<N, R>
+impl<R, T> HasRandom for RandomSampler<R, T>
 where
     R: Rng + SeedableRng,
 {
-    fn get_random(&self) -> &Random {
+    fn get_random(&self) -> &RandomSpec {
         &self.random
     }
 
-    fn get_random_mut(&mut self) -> &mut Random {
+    fn get_random_mut(&mut self) -> &mut RandomSpec {
         &mut self.random
     }
 }
@@ -452,9 +403,8 @@ impl<R, T> RandomState<R, T>
 where
     R: Rng + SeedableRng,
 {
-    pub fn new<const N: usize, P>(sampler: &impl HasRandom, _params: &P, _grid: &P::Grid) -> Self
+    pub fn new<const N: usize>(sampler: &impl HasRandom) -> Self
     where
-        P: Params<N>,
         R: Rng + SeedableRng,
     {
         RandomState {

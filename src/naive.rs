@@ -7,39 +7,38 @@
 //! This algorithm is very slow and should not be used in production.
 
 use crate::common::{
-    Grid, GridND, Params, ParamsND, Point, Random, RandomSamplerBase, RandomState, Sampler,
+    GridImpl, GridND, ND, ParamsImpl, ParamsND, Point, RandomSampler, RandomSpec, RandomState,
+    Sampler,
 };
-use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
 use std::array;
 
-#[derive(Deref, DerefMut)]
-pub struct NaiveSamplerND<const N: usize, R = Xoshiro256StarStar>(RandomSamplerBase<N, R>)
-where
-    R: Rng + SeedableRng;
+pub struct Naive;
 
-impl<const N: usize, R> Default for NaiveSamplerND<N, R>
+pub type NaiveSampler<R = Xoshiro256StarStar> = RandomSampler<R, Naive>;
+
+impl<R> Default for RandomSampler<R, Naive>
 where
     R: Rng + SeedableRng,
 {
     fn default() -> Self {
-        NaiveSamplerND(RandomSamplerBase {
-            random: Random::new(100),
+        RandomSampler {
+            random: RandomSpec::new(100),
             _rng: Default::default(),
-        })
+            _t: Default::default(),
+        }
     }
 }
 
-impl<const N: usize, R> Sampler<N> for NaiveSamplerND<N, R>
+impl<const N: usize, R> Sampler<N, ND> for NaiveSampler<R>
 where
     R: Rng + SeedableRng,
 {
-    type Params = ParamsND<N>;
     type State = RandomState<R>;
 
     fn new_state(&self, _params: &ParamsND<N>, grid: &GridND<N>) -> Self::State {
-        let mut state = RandomState::new(self.deref(), _params, grid);
+        let mut state = RandomState::new::<N>(self);
         state.active.extend(0..grid.cells.len());
         state
     }

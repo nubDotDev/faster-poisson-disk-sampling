@@ -21,12 +21,12 @@
 
 use super::Point;
 use crate::{
-    Grid, Params, Sampler,
+    Sampler,
     common::{
-        Grid2D, Grid3D, GridND, HasRandom, Params2D, Params3D, ParamsND, Random, RandomState,
+        Grid2D, Grid3D, GridND, HasRandom, ND, Params2D, Params3D, ParamsImpl, ParamsND,
+        RandomSpec, RandomState, ThreeD, TwoD,
     },
 };
-use derive_more::with_trait::{Deref, DerefMut};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
 use std::{array, f64::consts::TAU, iter, marker::PhantomData};
@@ -36,110 +36,71 @@ pub struct ActiveSample {
     parent_idx: Option<usize>,
 }
 
-pub struct BridsonSamplerBase<const N: usize, R>
+pub struct BridsonSamplerBase<R, T>
 where
     R: Rng + SeedableRng,
 {
     pub(crate) cdf_exp: Option<f64>,
-    pub(crate) random: Random,
+    pub(crate) random: RandomSpec,
     _rng: PhantomData<R>,
+    _t: PhantomData<T>,
 }
 
-#[derive(Deref, DerefMut)]
-pub struct BridsonSampler2D<R = Xoshiro256StarStar>(BridsonSamplerBase<2, R>)
-where
-    R: Rng + SeedableRng;
+pub struct Bridson;
+pub struct Parental;
 
-#[derive(Deref, DerefMut)]
-pub struct BridsonSampler3D<R = Xoshiro256StarStar>(BridsonSamplerBase<3, R>)
-where
-    R: Rng + SeedableRng;
+pub type BridsonSampler<R = Xoshiro256StarStar> = BridsonSamplerBase<R, Bridson>;
+pub type ParentalSampler<R = Xoshiro256StarStar> = BridsonSamplerBase<R, Parental>;
 
-#[derive(Deref, DerefMut)]
-pub struct BridsonSamplerND<const N: usize, R = Xoshiro256StarStar>(BridsonSamplerBase<N, R>)
-where
-    R: Rng + SeedableRng;
-
-#[derive(Deref, DerefMut)]
-pub struct ParentalSampler2D<R = Xoshiro256StarStar>(BridsonSamplerBase<2, R>)
-where
-    R: Rng + SeedableRng;
-
-impl<const N: usize, R> HasRandom for BridsonSamplerBase<N, R>
+impl<R, T> HasRandom for BridsonSamplerBase<R, T>
 where
     R: Rng + SeedableRng,
 {
-    fn get_random(&self) -> &Random {
+    fn get_random(&self) -> &RandomSpec {
         &self.random
     }
 
-    fn get_random_mut(&mut self) -> &mut Random {
+    fn get_random_mut(&mut self) -> &mut RandomSpec {
         &mut self.random
     }
 }
 
-impl<const N: usize, R> Default for BridsonSamplerBase<N, R>
+impl<R> Default for BridsonSamplerBase<R, Bridson>
 where
     R: Rng + SeedableRng,
 {
     fn default() -> Self {
         BridsonSamplerBase {
             cdf_exp: None,
-            random: Random::new(16),
+            random: RandomSpec::new(16),
             _rng: Default::default(),
+            _t: Default::default(),
         }
     }
 }
 
-impl<R> Default for BridsonSampler2D<R>
+impl<R> Default for BridsonSamplerBase<R, Parental>
 where
     R: Rng + SeedableRng,
 {
     fn default() -> Self {
-        BridsonSampler2D(BridsonSamplerBase::default())
-    }
-}
-
-impl<R> Default for BridsonSampler3D<R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        BridsonSampler3D(BridsonSamplerBase::default())
-    }
-}
-
-impl<const N: usize, R> Default for BridsonSamplerND<N, R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        BridsonSamplerND(BridsonSamplerBase::default())
-    }
-}
-
-impl<R> Default for ParentalSampler2D<R>
-where
-    R: Rng + SeedableRng,
-{
-    fn default() -> Self {
-        ParentalSampler2D(BridsonSamplerBase {
+        BridsonSamplerBase {
             cdf_exp: None,
-            random: Random::new(14),
+            random: RandomSpec::new(14),
             _rng: Default::default(),
-        })
+            _t: Default::default(),
+        }
     }
 }
 
-impl<R> Sampler<2> for BridsonSampler2D<R>
+impl<R> Sampler<2, TwoD> for BridsonSamplerBase<R, Bridson>
 where
     R: Rng + SeedableRng,
 {
-    type Params = Params2D;
     type State = RandomState<R>;
 
-    fn new_state(&self, _params: &Params2D, grid: &Grid2D) -> Self::State {
-        RandomState::new(self.deref(), _params, grid)
+    fn new_state(&self, _params: &Params2D, _grid: &Grid2D) -> Self::State {
+        RandomState::new::<2>(self)
     }
 
     fn sample(
@@ -193,15 +154,14 @@ where
     }
 }
 
-impl<R> Sampler<3> for BridsonSampler3D<R>
+impl<R> Sampler<3, ThreeD> for BridsonSampler<R>
 where
     R: Rng + SeedableRng,
 {
-    type Params = Params3D;
     type State = RandomState<R>;
 
-    fn new_state(&self, _params: &Params3D, grid: &Grid3D) -> Self::State {
-        RandomState::new(self.deref(), _params, grid)
+    fn new_state(&self, _params: &Params3D, _grid: &Grid3D) -> Self::State {
+        RandomState::new::<3>(self)
     }
 
     fn sample(
@@ -265,15 +225,14 @@ where
     }
 }
 
-impl<const N: usize, R> Sampler<N> for BridsonSamplerND<N, R>
+impl<const N: usize, R> Sampler<N, ND> for BridsonSampler<R>
 where
     R: Rng + SeedableRng,
 {
-    type Params = ParamsND<N>;
     type State = RandomState<R>;
 
-    fn new_state(&self, _params: &ParamsND<N>, grid: &GridND<N>) -> Self::State {
-        RandomState::new(self.deref(), _params, grid)
+    fn new_state(&self, _params: &ParamsND<N>, _grid: &GridND<N>) -> Self::State {
+        RandomState::new::<N>(self)
     }
 
     fn sample(
@@ -325,15 +284,14 @@ where
     }
 }
 
-impl<R> Sampler<2> for ParentalSampler2D<R>
+impl<R> Sampler<2, TwoD> for ParentalSampler<R>
 where
     R: Rng + SeedableRng,
 {
-    type Params = Params2D;
     type State = RandomState<R, ActiveSample>;
 
-    fn new_state(&self, _params: &Params2D, grid: &Grid2D) -> Self::State {
-        RandomState::new(self.deref(), _params, grid)
+    fn new_state(&self, _params: &Params2D, _grid: &Grid2D) -> Self::State {
+        RandomState::new::<2>(self)
     }
 
     fn sample(
