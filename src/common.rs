@@ -403,7 +403,7 @@ impl<R, T> RandomState<R, T>
 where
     R: Rng + SeedableRng,
 {
-    pub fn new<const N: usize>(sampler: &impl HasRandom) -> Self
+    pub fn new(sampler: &impl HasRandom) -> Self
     where
         R: Rng + SeedableRng,
     {

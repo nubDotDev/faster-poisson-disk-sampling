@@ -100,7 +100,7 @@ where
     type State = RandomState<R>;
 
     fn new_state(&self, _params: &Params2D, _grid: &Grid2D) -> Self::State {
-        RandomState::new::<2>(self)
+        RandomState::new(self)
     }
 
     fn sample(
@@ -161,7 +161,7 @@ where
     type State = RandomState<R>;
 
     fn new_state(&self, _params: &Params3D, _grid: &Grid3D) -> Self::State {
-        RandomState::new::<3>(self)
+        RandomState::new(self)
     }
 
     fn sample(
@@ -232,7 +232,7 @@ where
     type State = RandomState<R>;
 
     fn new_state(&self, _params: &ParamsND<N>, _grid: &GridND<N>) -> Self::State {
-        RandomState::new::<N>(self)
+        RandomState::new(self)
     }
 
     fn sample(
@@ -291,7 +291,7 @@ where
     type State = RandomState<R, ActiveSample>;
 
     fn new_state(&self, _params: &Params2D, _grid: &Grid2D) -> Self::State {
-        RandomState::new::<2>(self)
+        RandomState::new(self)
     }
 
     fn sample(

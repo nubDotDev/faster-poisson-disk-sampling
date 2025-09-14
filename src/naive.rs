@@ -38,7 +38,7 @@ where
     type State = RandomState<R>;
 
     fn new_state(&self, _params: &ParamsND<N>, grid: &GridND<N>) -> Self::State {
-        let mut state = RandomState::new::<N>(self);
+        let mut state = RandomState::new(self);
         state.active.extend(0..grid.cells.len());
         state
     }
