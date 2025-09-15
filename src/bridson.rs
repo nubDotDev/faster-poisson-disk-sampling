@@ -123,10 +123,11 @@ where
             let sample_idx = state.active[active_idx];
             let p: &[f64; 2] = &grid.samples[sample_idx];
             let p_opt = iter::from_fn(|| {
+                let radius = params.get_radius(p);
                 let s = match self.cdf_exp {
-                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    None => radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
                     Some(cdf_exp) => {
-                        2.0 * params.radius
+                        2.0 * radius
                             * state
                                 .rng
                                 .random_range(0.5f64.powf(cdf_exp)..=1.0)
@@ -185,10 +186,11 @@ where
             let sample_idx = state.active[active_idx];
             let p = &grid.samples[sample_idx];
             let p_opt = iter::from_fn(|| {
+                let radius = params.get_radius(p);
                 let s = match self.cdf_exp {
-                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    None => radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
                     Some(cdf_exp) => {
-                        2.0 * params.radius
+                        2.0 * radius
                             * state
                                 .rng
                                 .random_range(0.5f64.powf(cdf_exp)..=1.0)
@@ -252,10 +254,11 @@ where
             let sample_idx = state.active[active_idx];
             let p = &grid.samples[sample_idx];
             let p_opt = iter::from_fn(|| {
+                let radius = params.get_radius(p);
                 let s = match self.cdf_exp {
-                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    None => radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
                     Some(cdf_exp) => {
-                        2.0 * params.radius
+                        2.0 * radius
                             * state
                                 .rng
                                 .random_range(0.5f64.powf(cdf_exp)..=1.0)
@@ -316,15 +319,13 @@ where
             let active_idx = state.rng.random_range(0..state.active.len());
             let sample = &state.active[active_idx];
             let p = &grid.samples[sample.idx];
+            let radius = params.get_radius(p);
 
             let theta_range = match sample.parent_idx {
                 None => 0.0..TAU,
                 Some(parent_idx) => {
                     let parent = &grid.samples[parent_idx];
-                    let d = [
-                        (parent[0] - p[0]) / params.radius,
-                        (parent[1] - p[1]) / params.radius,
-                    ];
+                    let d = [(parent[0] - p[0]) / radius, (parent[1] - p[1]) / radius];
                     let dist2 = d[0] * d[0] + d[1] * d[1];
                     let dist = dist2.sqrt();
                     let alpha = d[1].atan2(d[0]);
@@ -337,9 +338,9 @@ where
 
             let p_opt = iter::from_fn(|| {
                 let s = match self.cdf_exp {
-                    None => params.radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
+                    None => radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
                     Some(cdf_exp) => {
-                        2.0 * params.radius
+                        2.0 * radius
                             * state
                                 .rng
                                 .random_range(0.5f64.powf(cdf_exp)..=1.0)

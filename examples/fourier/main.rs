@@ -1,5 +1,6 @@
 use faster_poisson::{
-    Poisson2D, PoissonBridson2D, PoissonDart2D, PoissonNaiveND, PoissonRegular2D, fourier, plot_2d,
+    Poisson2D, PoissonBridson2D, PoissonDart2D, PoissonND, PoissonNaiveND, PoissonRegular2D,
+    fourier, plot_2d,
 };
 
 fn main() {
@@ -103,6 +104,30 @@ fn main() {
     );
     println!(
         "Calculated Fourier transform for regular sampler ({} samples).",
+        samples.len()
+    );
+
+    let poisson = PoissonND::<2>::new()
+        .dims(dims)
+        .radius_fn(Some(|p| {
+            0.1 + 0.1 * p[0].sin().abs() + 0.1 * p[1].sin().abs()
+        }))
+        .seed(Some(0xDEADBEEF));
+    let samples = poisson.run();
+    fourier(
+        &samples,
+        dims,
+        pixels_per_unit,
+        brightness,
+        String::from("examples/fourier/images/dynamic_fourier.png"),
+    );
+    plot_2d(
+        &samples,
+        [1000, 1000],
+        String::from("examples/fourier/images/dynamic_plot.html"),
+    );
+    println!(
+        "Calculated Fourier transform for dynamic radius sampler ({} samples).",
         samples.len()
     );
 }

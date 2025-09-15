@@ -15,6 +15,11 @@ impl<const N: usize> Sampler<N, ND> for RegularSampler<N> {
     type State = RegularState<N>;
 
     fn new_state(&self, params: &ParamsND<N>, _grid: &GridND<N>) -> Self::State {
+        match params.radius_fn {
+            None => (),
+            Some(_) => panic!("Regular sampling is not compatible with dynamic radii."),
+        }
+
         let radius = params.radius;
         let hiidx = params.dims.map(|x| (x / params.radius).floor() as usize);
         let mut curr = [0; N];

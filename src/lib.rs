@@ -68,6 +68,13 @@ where
         self.params.radius = radius;
         self
     }
+
+    /// Specify a function to dynamically set the minimum distance between points.
+    /// The global minimum of this function must be at least the value passed to `self.radius`.
+    pub fn radius_fn(mut self, radius_fn: Option<fn(&Point<N>) -> f64>) -> Self {
+        self.params.radius_fn = radius_fn;
+        self
+    }
 }
 
 impl<const N: usize, S, T> Poisson<N, S, T>
@@ -226,6 +233,15 @@ mod tests {
     fn test_naive() {
         let poisson = PoissonNaiveND::<3>::new()
             .dims([2.0; 3])
+            .seed(Some(0xDEADBEEF));
+        len_and_distance(&poisson);
+    }
+
+    #[test]
+    fn test_radius_fn() {
+        let poisson = PoissonND::<2>::new()
+            .dims([5.0; 2])
+            .radius_fn(Some(|p| 0.1 + 0.01 * p.iter().sum::<f64>()))
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }

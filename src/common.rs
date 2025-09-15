@@ -10,6 +10,8 @@ pub struct TwoD;
 pub struct ThreeD;
 #[derive(Default, Clone, Copy)]
 pub struct ND;
+#[derive(Default, Clone, Copy)]
+pub struct DynND;
 
 pub struct Grid<const N: usize, T> {
     pub(crate) cell_len: f64,
@@ -124,12 +126,22 @@ impl<const N: usize> GridImpl<N> for GridND<N> {
 pub struct Params<const N: usize, T> {
     pub(crate) dims: Point<N>,
     pub(crate) radius: f64,
+    pub(crate) radius_fn: Option<fn(&Point<N>) -> f64>,
     _t: PhantomData<T>,
 }
 
 pub(crate) type Params2D = Params<2, TwoD>;
 pub(crate) type Params3D = Params<3, ThreeD>;
 pub(crate) type ParamsND<const N: usize> = Params<N, ND>;
+
+impl<const N: usize, T> Params<N, T> {
+    pub(crate) fn get_radius(&self, p: &Point<N>) -> f64 {
+        match self.radius_fn {
+            None => self.radius,
+            Some(radius_fn) => radius_fn(p),
+        }
+    }
+}
 
 pub trait ParamsImpl<const N: usize, T> {
     fn grid(&self) -> Grid<N, T>;
@@ -141,6 +153,7 @@ impl<const N: usize, T> Default for Params<N, T> {
         Params {
             dims: [1.0; N],
             radius: 0.1,
+            radius_fn: None,
             _t: Default::default(),
         }
     }
@@ -163,6 +176,13 @@ impl ParamsImpl<2, TwoD> for Params2D {
     }
 
     fn is_sample_valid(&self, p: &Point<2>, grid: &Grid2D) -> bool {
+        match self.radius_fn {
+            None => (),
+            Some(_) => {
+                panic!("Use an N-dimensional sampler (e.g., PoissonND<2>) for dynamic radii.")
+            }
+        }
+
         if !(0.0..self.dims[0]).contains(&p[0]) || !(0.0..self.dims[1]).contains(&p[1]) {
             return false;
         }
@@ -221,6 +241,13 @@ impl ParamsImpl<3, ThreeD> for Params3D {
     }
 
     fn is_sample_valid(&self, p: &Point<3>, grid: &Grid3D) -> bool {
+        match self.radius_fn {
+            None => (),
+            Some(_) => {
+                panic!("Use an N-dimensional sampler (e.g., PoissonND<3>) for dynamic radii.")
+            }
+        }
+
         if !(0.0..self.dims[0]).contains(&p[0])
             || !(0.0..self.dims[1]).contains(&p[1])
             || !(0.0..self.dims[2]).contains(&p[2])
@@ -291,8 +318,14 @@ impl<const N: usize> ParamsImpl<N, ND> for ParamsND<N> {
         }
 
         let ndidx = grid.point_to_ndidx(p);
-        let radius_quo = N.isqrt();
-        let radius_rem = (N as f64).sqrt().fract();
+        let (radius, radius_quo, radius_rem) = match self.radius_fn {
+            None => (self.radius, N.isqrt(), (N as f64).sqrt().fract()),
+            Some(radius_fn) => {
+                let radius = radius_fn(p);
+                let quo = radius / grid.cell_len;
+                (radius, quo.floor() as usize, quo.fract())
+            }
+        };
         let p_rems = p.map(|x| (x / grid.cell_len).fract());
         let loidx: [usize; N] = array::from_fn(|i| {
             ndidx[i].saturating_sub(radius_quo + ((p_rems[i] <= radius_rem) as usize))
@@ -313,7 +346,7 @@ impl<const N: usize> ParamsImpl<N, ND> for ParamsND<N> {
                         let d = sample[i] - p[i];
                         dist_sq += d * d;
                     }
-                    if dist_sq < self.radius * self.radius {
+                    if dist_sq < radius * radius {
                         return false;
                     }
                 }
