@@ -238,10 +238,28 @@ mod tests {
     }
 
     #[test]
-    fn test_radius_fn() {
-        let poisson = PoissonND::<2>::new()
+    fn test_2d_radius_fn() {
+        let poisson = Poisson2D::new()
             .dims([5.0; 2])
-            .radius_fn(Some(|p| 0.1 + 0.01 * p.iter().sum::<f64>()))
+            .radius_fn(Some(|p| 0.1 + 0.05 * p[0].sin().abs()))
+            .seed(Some(0xDEADBEEF));
+        len_and_distance(&poisson);
+    }
+
+    #[test]
+    fn test_3d_radius_fn() {
+        let poisson = Poisson3D::new()
+            .dims([2.0; 3])
+            .radius_fn(Some(|p| 0.1 + 0.05 * p[0].sin().abs()))
+            .seed(Some(0xDEADBEEF));
+        len_and_distance(&poisson);
+    }
+
+    #[test]
+    fn test_4d_radius_fn() {
+        let poisson = PoissonND::<4>::new()
+            .dims([0.5; 4])
+            .radius_fn(Some(|p| 0.1 + 0.05 * p[0].sin().abs()))
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }

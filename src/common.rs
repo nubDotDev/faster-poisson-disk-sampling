@@ -176,33 +176,50 @@ impl ParamsImpl<2, TwoD> for Params2D {
     }
 
     fn is_sample_valid(&self, p: &Point<2>, grid: &Grid2D) -> bool {
-        match self.radius_fn {
-            None => (),
-            Some(_) => {
-                panic!("Use an N-dimensional sampler (e.g., PoissonND<2>) for dynamic radii.")
-            }
-        }
-
         if !(0.0..self.dims[0]).contains(&p[0]) || !(0.0..self.dims[1]).contains(&p[1]) {
             return false;
         }
-
-        const FRACT_SQRT_2: f64 = SQRT_2 - 1.0;
-        const ONE_MINUS_FRACT_SQRT_2: f64 = 2.0 - SQRT_2;
 
         let ndidx = grid.point_to_ndidx(p);
         let p_rems = [
             (p[0] / grid.cell_len).fract(),
             (p[1] / grid.cell_len).fract(),
         ];
-        let ranges = [
-            ndidx[0].saturating_sub(1 + ((p_rems[0] <= FRACT_SQRT_2) as usize))
-                ..=(ndidx[0] + 1 + ((p_rems[0] >= ONE_MINUS_FRACT_SQRT_2) as usize))
-                    .min(grid.grid_dims[0] - 1),
-            ndidx[1].saturating_sub(1 + ((p_rems[1] <= FRACT_SQRT_2) as usize))
-                ..=(ndidx[1] + 1 + ((p_rems[1] >= ONE_MINUS_FRACT_SQRT_2) as usize))
-                    .min(grid.grid_dims[1] - 1),
-        ];
+
+        let (radius, ranges) = match self.radius_fn {
+            None => {
+                const FRACT_SQRT_2: f64 = SQRT_2 - 1.0;
+                const ONE_MINUS_FRACT_SQRT_2: f64 = 2.0 - SQRT_2;
+                (
+                    self.radius,
+                    [
+                        ndidx[0].saturating_sub(1 + ((p_rems[0] <= FRACT_SQRT_2) as usize))
+                            ..=(ndidx[0] + 1 + ((p_rems[0] >= ONE_MINUS_FRACT_SQRT_2) as usize))
+                                .min(grid.grid_dims[0] - 1),
+                        ndidx[1].saturating_sub(1 + ((p_rems[1] <= FRACT_SQRT_2) as usize))
+                            ..=(ndidx[1] + 1 + ((p_rems[1] >= ONE_MINUS_FRACT_SQRT_2) as usize))
+                                .min(grid.grid_dims[1] - 1),
+                    ],
+                )
+            }
+            Some(radius_fn) => {
+                let radius = radius_fn(p);
+                let quo = radius / grid.cell_len;
+                let radius_quo = quo.floor() as usize;
+                let radius_rem = quo.fract();
+                (
+                    radius,
+                    [
+                        ndidx[0].saturating_sub(radius_quo + ((p_rems[0] <= radius_rem) as usize))
+                            ..=(ndidx[0] + radius_quo + ((p_rems[0] >= 1.0 - radius_rem) as usize))
+                                .min(grid.grid_dims[0] - 1),
+                        ndidx[1].saturating_sub(radius_quo + ((p_rems[1] <= radius_rem) as usize))
+                            ..=(ndidx[1] + radius_quo + ((p_rems[1] >= 1.0 - radius_rem) as usize))
+                                .min(grid.grid_dims[1] - 1),
+                    ],
+                )
+            }
+        };
 
         for i in ranges[0].clone() {
             for j in ranges[1].clone() {
@@ -211,7 +228,7 @@ impl ParamsImpl<2, TwoD> for Params2D {
                     Some(sample_idx) => {
                         let sample = &grid.samples[sample_idx];
                         let d = [sample[0] - p[0], sample[1] - p[1]];
-                        if d[0] * d[0] + d[1] * d[1] < self.radius * self.radius {
+                        if d[0] * d[0] + d[1] * d[1] < radius * radius {
                             return false;
                         }
                     }
@@ -241,13 +258,6 @@ impl ParamsImpl<3, ThreeD> for Params3D {
     }
 
     fn is_sample_valid(&self, p: &Point<3>, grid: &Grid3D) -> bool {
-        match self.radius_fn {
-            None => (),
-            Some(_) => {
-                panic!("Use an N-dimensional sampler (e.g., PoissonND<3>) for dynamic radii.")
-            }
-        }
-
         if !(0.0..self.dims[0]).contains(&p[0])
             || !(0.0..self.dims[1]).contains(&p[1])
             || !(0.0..self.dims[2]).contains(&p[2])
@@ -264,17 +274,43 @@ impl ParamsImpl<3, ThreeD> for Params3D {
             (p[1] / grid.cell_len).fract(),
             (p[2] / grid.cell_len).fract(),
         ];
-        let ranges = [
-            ndidx[0].saturating_sub(1 + ((p_rems[0] <= fract_sqrt_3) as usize))
-                ..=(ndidx[0] + 1 + ((p_rems[0] >= one_minus_fract_sqrt_3) as usize))
-                    .min(grid.grid_dims[0] - 1),
-            ndidx[1].saturating_sub(1 + ((p_rems[1] <= fract_sqrt_3) as usize))
-                ..=(ndidx[1] + 1 + ((p_rems[1] >= one_minus_fract_sqrt_3) as usize))
-                    .min(grid.grid_dims[1] - 1),
-            ndidx[2].saturating_sub(1 + ((p_rems[2] <= fract_sqrt_3) as usize))
-                ..=(ndidx[2] + 1 + ((p_rems[2] >= one_minus_fract_sqrt_3) as usize))
-                    .min(grid.grid_dims[2] - 1),
-        ];
+
+        let (radius, ranges) = match self.radius_fn {
+            None => (
+                self.radius,
+                [
+                    ndidx[0].saturating_sub(1 + ((p_rems[0] <= fract_sqrt_3) as usize))
+                        ..=(ndidx[0] + 1 + ((p_rems[0] >= one_minus_fract_sqrt_3) as usize))
+                            .min(grid.grid_dims[0] - 1),
+                    ndidx[1].saturating_sub(1 + ((p_rems[1] <= fract_sqrt_3) as usize))
+                        ..=(ndidx[1] + 1 + ((p_rems[1] >= one_minus_fract_sqrt_3) as usize))
+                            .min(grid.grid_dims[1] - 1),
+                    ndidx[2].saturating_sub(1 + ((p_rems[2] <= fract_sqrt_3) as usize))
+                        ..=(ndidx[2] + 1 + ((p_rems[2] >= one_minus_fract_sqrt_3) as usize))
+                            .min(grid.grid_dims[2] - 1),
+                ],
+            ),
+            Some(radius_fn) => {
+                let radius = radius_fn(p);
+                let quo = radius / grid.cell_len;
+                let radius_quo = quo.floor() as usize;
+                let radius_rem = quo.fract();
+                (
+                    radius,
+                    [
+                        ndidx[0].saturating_sub(radius_quo + ((p_rems[0] <= radius_rem) as usize))
+                            ..=(ndidx[0] + radius_quo + ((p_rems[0] >= 1.0 - radius_rem) as usize))
+                                .min(grid.grid_dims[0] - 1),
+                        ndidx[1].saturating_sub(radius_quo + ((p_rems[1] <= radius_rem) as usize))
+                            ..=(ndidx[1] + radius_quo + ((p_rems[1] >= 1.0 - radius_rem) as usize))
+                                .min(grid.grid_dims[1] - 1),
+                        ndidx[2].saturating_sub(radius_quo + ((p_rems[2] <= radius_rem) as usize))
+                            ..=(ndidx[2] + radius_quo + ((p_rems[2] >= 1.0 - radius_rem) as usize))
+                                .min(grid.grid_dims[2] - 1),
+                    ],
+                )
+            }
+        };
 
         for i in ranges[0].clone() {
             for j in ranges[1].clone() {
@@ -284,7 +320,7 @@ impl ParamsImpl<3, ThreeD> for Params3D {
                         Some(sample_idx) => {
                             let sample = &grid.samples[sample_idx];
                             let d = [sample[0] - p[0], sample[1] - p[1]];
-                            if d[0] * d[0] + d[1] * d[1] < self.radius * self.radius {
+                            if d[0] * d[0] + d[1] * d[1] < radius * radius {
                                 return false;
                             }
                         }
@@ -331,7 +367,7 @@ impl<const N: usize> ParamsImpl<N, ND> for ParamsND<N> {
             ndidx[i].saturating_sub(radius_quo + ((p_rems[i] <= radius_rem) as usize))
         });
         let hiidx: [usize; N] = array::from_fn(|i| {
-            (ndidx[i] + radius_quo + ((p_rems[i] >= grid.cell_len - radius_rem) as usize))
+            (ndidx[i] + radius_quo + ((p_rems[i] >= 1.0 - radius_rem) as usize))
                 .min(grid.grid_dims[i] - 1)
         });
 
