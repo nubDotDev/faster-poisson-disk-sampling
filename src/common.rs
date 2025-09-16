@@ -1,5 +1,5 @@
 use rand::{Rng, SeedableRng};
-use std::{array, f64::consts::SQRT_2, marker::PhantomData};
+use std::{array, f64::consts::SQRT_2, marker::PhantomData, sync::Arc};
 
 pub(crate) type Point<const N: usize> = [f64; N];
 pub(crate) type Idx<const N: usize> = [usize; N];
@@ -122,11 +122,11 @@ impl<const N: usize> GridImpl<N> for GridND<N> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Params<const N: usize, T> {
     pub(crate) dims: Point<N>,
     pub(crate) radius: f64,
-    pub(crate) radius_fn: Option<fn(&Point<N>) -> f64>,
+    pub(crate) radius_fn: Option<Arc<dyn Fn(&Point<N>) -> f64>>,
     _t: PhantomData<T>,
 }
 
@@ -136,7 +136,7 @@ pub(crate) type ParamsND<const N: usize> = Params<N, ND>;
 
 impl<const N: usize, T> Params<N, T> {
     pub(crate) fn get_radius(&self, p: &Point<N>) -> f64 {
-        match self.radius_fn {
+        match &self.radius_fn {
             None => self.radius,
             Some(radius_fn) => radius_fn(p),
         }
@@ -186,7 +186,7 @@ impl ParamsImpl<2, TwoD> for Params2D {
             (p[1] / grid.cell_len).fract(),
         ];
 
-        let (radius, ranges) = match self.radius_fn {
+        let (radius, ranges) = match &self.radius_fn {
             None => {
                 const FRACT_SQRT_2: f64 = SQRT_2 - 1.0;
                 const ONE_MINUS_FRACT_SQRT_2: f64 = 2.0 - SQRT_2;
@@ -275,7 +275,7 @@ impl ParamsImpl<3, ThreeD> for Params3D {
             (p[2] / grid.cell_len).fract(),
         ];
 
-        let (radius, ranges) = match self.radius_fn {
+        let (radius, ranges) = match &self.radius_fn {
             None => (
                 self.radius,
                 [
@@ -354,7 +354,7 @@ impl<const N: usize> ParamsImpl<N, ND> for ParamsND<N> {
         }
 
         let ndidx = grid.point_to_ndidx(p);
-        let (radius, radius_quo, radius_rem) = match self.radius_fn {
+        let (radius, radius_quo, radius_rem) = match &self.radius_fn {
             None => (self.radius, N.isqrt(), (N as f64).sqrt().fract()),
             Some(radius_fn) => {
                 let radius = radius_fn(p);

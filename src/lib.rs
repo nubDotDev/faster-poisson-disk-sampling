@@ -18,7 +18,7 @@ pub use crate::plot::{plot_2d, plot_3d};
 
 use crate::{bridson::*, common::*, dart::*, naive::*, regular::*};
 use rand::{Rng, SeedableRng};
-use std::iter;
+use std::{iter, sync::Arc};
 
 /// Generates Poisson disk samples.
 #[derive(Default)]
@@ -35,7 +35,7 @@ impl<const N: usize, S, T> Poisson<N, S, T>
 where
     S: Sampler<N, T>,
     T: Default,
-    Params<N, T>: Clone + Copy + ParamsImpl<N, T>,
+    Params<N, T>: Clone + ParamsImpl<N, T>,
 {
     /// Creates a new instance with the default parameters (`dims = [1.0; N]`, `radius = 0.1`)
     /// and sampler settings.
@@ -46,7 +46,7 @@ where
     /// Returns an iterator that lazily generates points.
     /// Note that this does not consume the instance, so you can reuse it.
     pub fn iter(&self) -> impl Iterator<Item = Point<N>> {
-        let params = self.params;
+        let params = self.params.clone();
         let mut grid = self.params.grid();
         let mut state = self.sampler.new_state(&self.params, &grid);
         iter::from_fn(move || self.sampler.sample(&params, &mut grid, &mut state))
@@ -71,7 +71,10 @@ where
 
     /// Specify a function to dynamically set the minimum distance between points.
     /// The global minimum of this function must be at least the value passed to `self.radius`.
-    pub fn radius_fn(mut self, radius_fn: Option<fn(&Point<N>) -> f64>) -> Self {
+    /// Note that it is not guaranteed the final set of points will satisfy this function.
+    /// Instead, it is only guaranteed that when a point `p` is placed,
+    /// there are no points within `radius_fn(p)` units of `p` *at that moment*.
+    pub fn radius_fn(mut self, radius_fn: Option<Arc<dyn Fn(&Point<N>) -> f64>>) -> Self {
         self.params.radius_fn = radius_fn;
         self
     }
@@ -147,7 +150,7 @@ mod tests {
     where
         S: Sampler<N, T>,
         T: Default,
-        Params<N, T>: Clone + Copy + ParamsImpl<N, T>,
+        Params<N, T>: Clone + ParamsImpl<N, T>,
     {
         let samples = poisson.run();
 
@@ -241,7 +244,7 @@ mod tests {
     fn test_2d_radius_fn() {
         let poisson = Poisson2D::new()
             .dims([5.0; 2])
-            .radius_fn(Some(|p| 0.1 + 0.05 * p[0].sin().abs()))
+            .radius_fn(Some(Arc::new(|p| 0.1 + 0.05 * p[0].sin().abs())))
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
@@ -250,7 +253,7 @@ mod tests {
     fn test_3d_radius_fn() {
         let poisson = Poisson3D::new()
             .dims([2.0; 3])
-            .radius_fn(Some(|p| 0.1 + 0.05 * p[0].sin().abs()))
+            .radius_fn(Some(Arc::new(|p| 0.1 + 0.05 * p[0].sin().abs())))
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }
@@ -259,7 +262,7 @@ mod tests {
     fn test_4d_radius_fn() {
         let poisson = PoissonND::<4>::new()
             .dims([0.5; 4])
-            .radius_fn(Some(|p| 0.1 + 0.05 * p[0].sin().abs()))
+            .radius_fn(Some(Arc::new(|p| 0.1 + 0.05 * p[0].sin().abs())))
             .seed(Some(0xDEADBEEF));
         len_and_distance(&poisson);
     }

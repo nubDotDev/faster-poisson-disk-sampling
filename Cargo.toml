@@ -25,6 +25,8 @@ criterion = "0.7.0"
 
 [features]
 fourier = ["dep:image", "dep:rustfft"]
+image = ["dep:image"]
+plotly = ["dep:plotly"]
 
 [[bench]]
 name = "poisson_disk_sampling"
