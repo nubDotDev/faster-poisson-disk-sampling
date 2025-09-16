@@ -9,13 +9,13 @@
 //! Restricted to the annulus of inner radius 1/2,
 //! the limiting CDF of the distance from the center is log<sub>2</sub>(x) + 1.
 //!
-//! [`ParentalSampler2D`] makes the additional optimization of
+//! [`ParentalSampler`] makes the additional optimization of
 //! removing the slice of the annulus that is too close to the parent of the base point
 //! (i.e., the point around which an annulus was sampled to generate the base point).
 //!
-//! `attempts` defaults to 16 in [`BridsonSampler2D`], [`BridsonSampler3D`], and [`BridsonSamplerND`].
+//! `attempts` defaults to 16 in [`BridsonSampler`].
 //!
-//! `attempts` defaults to 14 in [`ParentalSampler2D`].
+//! `attempts` defaults to 14 in [`ParentalSampler`].
 //!
 //! `cdf_exp` defaults to `None` in all of the above.
 

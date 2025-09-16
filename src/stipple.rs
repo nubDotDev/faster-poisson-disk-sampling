@@ -5,11 +5,16 @@ use imageproc::drawing::draw_filled_circle_mut;
 
 use crate::Poisson2D;
 
+/// - `Highlight` puts white dots on a black background.
+/// - `Shade` puts black dots on a white background.
 pub enum StippleMode {
-    Shade,
     Highlight,
+    Shade,
 }
 
+/// Transforms the image at `src_path` into a stippled black and white image saved to `path`.
+/// Each dot has radius `dot_radius`
+/// and the minimum distance between points linearly interpolates between `min_radius` and `max_radius`.
 pub fn stipple(
     src_path: String,
     mode: StippleMode,
