@@ -15,6 +15,7 @@ all-features = true
 
 [dependencies]
 image = { version = "0.25.8", optional = true }
+imageproc = { version = "0.25.0", optional = true }
 plotly = { version = "0.13.5", optional = true }
 rand = "0.9.2"
 rand_xoshiro = "0.7.0"
@@ -25,8 +26,8 @@ criterion = "0.7.0"
 
 [features]
 fourier = ["dep:image", "dep:rustfft"]
-image = ["dep:image"]
 plotly = ["dep:plotly"]
+stipple = ["dep:image", "dep:imageproc"]
 
 [[bench]]
 name = "poisson_disk_sampling"
@@ -39,3 +40,7 @@ required-features = ["fourier", "plotly"]
 [[example]]
 name = "plot"
 required-features = ["plotly"]
+
+[[example]]
+name = "stipple"
+required-features = ["stipple"]

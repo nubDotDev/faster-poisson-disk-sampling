@@ -16,6 +16,11 @@ mod plot;
 #[cfg(feature = "plotly")]
 pub use crate::plot::{plot_2d, plot_3d};
 
+#[cfg(feature = "stipple")]
+mod stipple;
+#[cfg(feature = "stipple")]
+pub use crate::stipple::{StippleMode, stipple};
+
 use crate::{bridson::*, common::*, dart::*, naive::*, regular::*};
 use rand::{Rng, SeedableRng};
 use std::{iter, sync::Arc};

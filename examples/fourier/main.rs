@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use faster_poisson::{
     Poisson2D, PoissonBridson2D, PoissonDart2D, PoissonND, PoissonNaiveND, PoissonRegular2D,
     fourier, plot_2d,
@@ -109,9 +111,9 @@ fn main() {
 
     let poisson = PoissonND::<2>::new()
         .dims(dims)
-        .radius_fn(Some(|p| {
+        .radius_fn(Some(Arc::new(|p| {
             0.1 + 0.1 * p[0].sin().abs() + 0.1 * p[1].sin().abs()
-        }))
+        })))
         .seed(Some(0xDEADBEEF));
     let samples = poisson.run();
     fourier(
