@@ -558,7 +558,7 @@ dependencies = [
 
 [[package]]
 name = "faster_poisson"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "criterion",
  "image",
