@@ -318,33 +318,32 @@ where
         while !state.active.is_empty() {
             let active_idx = state.rng.random_range(0..state.active.len());
             let sample = &state.active[active_idx];
+            let p = &grid.samples[sample.idx];
+            let (radius, theta_range) = match &params.radius_fn {
+                None => (
+                    params.radius,
+                    match sample.parent_idx {
+                        None => 0.0..TAU,
+                        Some(parent_idx) => {
+                            let parent = &grid.samples[parent_idx];
+                            let d = [
+                                (parent[0] - p[0]) / params.radius,
+                                (parent[1] - p[1]) / params.radius,
+                            ];
+                            let dist2 = d[0] * d[0] + d[1] * d[1];
+                            let dist = dist2.sqrt();
+                            let alpha = d[1].atan2(d[0]);
+                            let outer = ((dist2 + 3.0) / (4.0 * dist)).acos();
+                            let inner = (0.5 * dist).acos();
+                            let beta = outer.min(inner);
+                            alpha + beta..alpha + TAU - beta
+                        }
+                    },
+                ),
+                Some(radius_fn) => (radius_fn(p), 0.0..TAU),
+            };
 
             let p_opt = iter::from_fn(|| {
-                let p = &grid.samples[sample.idx];
-                let (radius, theta_range) = match &params.radius_fn {
-                    None => (
-                        params.radius,
-                        match sample.parent_idx {
-                            None => 0.0..TAU,
-                            Some(parent_idx) => {
-                                let parent = &grid.samples[parent_idx];
-                                let d = [
-                                    (parent[0] - p[0]) / params.radius,
-                                    (parent[1] - p[1]) / params.radius,
-                                ];
-                                let dist2 = d[0] * d[0] + d[1] * d[1];
-                                let dist = dist2.sqrt();
-                                let alpha = d[1].atan2(d[0]);
-                                let outer = ((dist2 + 3.0) / (4.0 * dist)).acos();
-                                let inner = (0.5 * dist).acos();
-                                let beta = outer.min(inner);
-                                alpha + beta..alpha + TAU - beta
-                            }
-                        },
-                    ),
-                    Some(radius_fn) => (radius_fn(p), 0.0..TAU),
-                };
-
                 let s = match self.cdf_exp {
                     None => radius * 2.0f64.powf(state.rng.random_range(0.0..=1.0)),
                     Some(cdf_exp) => {
